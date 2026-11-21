@@ -8,23 +8,23 @@ const inter = Inter({
   display: "swap",
 });
 
-const displayFont = Cormorant_Garamond({
-  variable: "--font-display",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
   subsets: ["latin"],
   display: "swap",
-  weight: ["300", "400", "500"],
+  weight: ["300", "400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "Still — Lofi Focus",
-  description: "A calm clock, focus timer, and lofi radio for your day.",
+  title: "Still — Lofi Focus & Atmospheric Sky",
+  description: "A calm clock, focus timer, live atmospheric weather, and lofi radio.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${displayFont.variable} h-full antialiased`}
+      className={`${inter.variable} ${cormorant.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

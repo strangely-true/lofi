@@ -397,9 +397,9 @@ export default function Home() {
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+      document.documentElement.requestFullscreen().catch(() => { });
     } else {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
     }
   }, []);
 
@@ -508,10 +508,10 @@ export default function Home() {
               {phase === "night"
                 ? `${moonData.name} ${moonData.emoji}`
                 : phase === "dawn"
-                ? "Morning light"
-                : phase === "golden"
-                ? "Golden hour"
-                : "Soft daylight"}
+                  ? "Morning light"
+                  : phase === "golden"
+                    ? "Golden hour"
+                    : "Soft daylight"}
             </span>
           </div>
           <button

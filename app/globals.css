@@ -4,7 +4,8 @@
 :root {
   --foreground: #fff;
   --font-display-stack: var(--font-display), "Georgia", serif;
-  --font-body: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body:
+    var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 * {
@@ -65,9 +66,24 @@ button {
 
 .sky.night {
   background:
-    radial-gradient(ellipse at 74% 22%, rgba(80, 100, 150, 0.14), transparent 36%),
-    radial-gradient(ellipse at 20% 60%, rgba(40, 50, 90, 0.12), transparent 40%),
-    linear-gradient(180deg, #0a0e1a 0%, #111d35 36%, #1c2d4a 56%, #2a3550 76%, #3d4260 100%);
+    radial-gradient(
+      ellipse at 74% 22%,
+      rgba(80, 100, 150, 0.14),
+      transparent 36%
+    ),
+    radial-gradient(
+      ellipse at 20% 60%,
+      rgba(40, 50, 90, 0.12),
+      transparent 40%
+    ),
+    linear-gradient(
+      180deg,
+      #0a0e1a 0%,
+      #111d35 36%,
+      #1c2d4a 56%,
+      #2a3550 76%,
+      #3d4260 100%
+    );
 }
 
 /* ─────────── STAR FIELD ─────────── */
@@ -97,13 +113,27 @@ button {
 }
 
 @keyframes star-twinkle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.3; transform: scale(0.7); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
 }
 
 @keyframes star-twinkle-dim {
-  0%, 100% { opacity: 0.5; transform: scale(0.9); }
-  50% { opacity: 0.1; transform: scale(0.5); }
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.1;
+    transform: scale(0.5);
+  }
 }
 
 /* ─────────── SHOOTING STARS ─────────── */
@@ -153,10 +183,20 @@ button {
 }
 
 @keyframes shoot {
-  0% { opacity: 0; transform: rotate(-35deg) translateX(0); }
-  2% { opacity: 1; }
-  6% { opacity: 0; transform: rotate(-35deg) translateX(260px); }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+    transform: rotate(-35deg) translateX(0);
+  }
+  2% {
+    opacity: 1;
+  }
+  6% {
+    opacity: 0;
+    transform: rotate(-35deg) translateX(260px);
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 /* ─────────── HORIZON GLOW ─────────── */
@@ -189,7 +229,12 @@ button {
   width: 74px;
   height: 74px;
   transform: translateX(-50%);
-  transition: left 2s ease, bottom 2s ease, opacity 1.5s ease, width 1.5s ease, height 1.5s ease;
+  transition:
+    left 2s ease,
+    bottom 2s ease,
+    opacity 1.5s ease,
+    width 1.5s ease,
+    height 1.5s ease;
   filter: blur(0.2px);
 }
 
@@ -205,14 +250,18 @@ button {
   height: 100%;
   border-radius: 50%;
   background: rgba(255, 245, 205, 0.96);
-  box-shadow: 0 0 28px 12px rgba(255, 221, 164, 0.48), 0 0 80px 32px rgba(255, 226, 180, 0.16);
+  box-shadow:
+    0 0 28px 12px rgba(255, 221, 164, 0.48),
+    0 0 80px 32px rgba(255, 226, 180, 0.16);
   transition: 1.8s ease;
   position: relative;
 }
 
 .night .celestial-core {
   background: radial-gradient(circle at 40% 40%, #f5f3e0, #e8e5cf 60%, #dddac4);
-  box-shadow: 0 0 32px 8px rgba(200, 210, 230, 0.15), 0 0 80px 20px rgba(180, 195, 220, 0.08);
+  box-shadow:
+    0 0 32px 8px rgba(200, 210, 230, 0.15),
+    0 0 80px 20px rgba(180, 195, 220, 0.08);
 }
 
 /* Moon shadow for phases */
@@ -220,7 +269,11 @@ button {
   position: absolute;
   inset: -1px;
   border-radius: 50%;
-  background: radial-gradient(circle at 65% 45%, transparent 40%, rgba(15, 20, 35, 0.85) 60%);
+  background: radial-gradient(
+    circle at 65% 45%,
+    transparent 40%,
+    rgba(15, 20, 35, 0.85) 60%
+  );
   opacity: 0.6;
   pointer-events: none;
 }
@@ -308,8 +361,12 @@ button {
 }
 
 @keyframes cloud-drift {
-  from { transform: translateX(-18px) scale(1); }
-  to { transform: translateX(28px) scale(1.08); }
+  from {
+    transform: translateX(-18px) scale(1);
+  }
+  to {
+    transform: translateX(28px) scale(1.08);
+  }
 }
 
 /* ─────────── ATMOSPHERE ─────────── */
@@ -320,14 +377,22 @@ button {
   pointer-events: none;
   background:
     linear-gradient(120deg, transparent 68%, rgba(255, 255, 255, 0.04)),
-    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.12), transparent 38%);
+    radial-gradient(
+      circle at 50% 100%,
+      rgba(255, 255, 255, 0.12),
+      transparent 38%
+    );
   opacity: var(--cloud-opacity);
 }
 
 /* ─────────── GLASS ─────────── */
 .glass {
   border: 1px solid rgba(255, 255, 255, 0.15);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.05)
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 12px 34px rgba(10, 14, 26, 0.15),
@@ -419,8 +484,13 @@ button {
 }
 
 @keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 10px rgba(255, 255, 255, 0.7); }
-  50% { box-shadow: 0 0 16px rgba(255, 255, 255, 0.9); }
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.9);
+  }
 }
 
 .night .status-dot {
@@ -464,8 +534,14 @@ button {
 }
 
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(18px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .clock {
@@ -540,7 +616,10 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: conic-gradient(rgba(255, 255, 255, 0.88) var(--timer-progress), rgba(255, 255, 255, 0.1) 0);
+  background: conic-gradient(
+    rgba(255, 255, 255, 0.88) var(--timer-progress),
+    rgba(255, 255, 255, 0.1) 0
+  );
   box-shadow: 0 25px 70px rgba(10, 14, 26, 0.18);
   transition: background 0.5s linear;
 }
@@ -566,7 +645,11 @@ button {
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06));
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0.06)
+  );
   backdrop-filter: blur(20px);
 }
 
@@ -900,8 +983,14 @@ button {
 }
 
 @keyframes drawer-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .credit-name {

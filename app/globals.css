@@ -15,6 +15,18 @@
   --animate-rise-in: rise-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --animate-pulse-dot: pulse-dot 3s ease-in-out infinite;
   --animate-eq-bar: eq-bar 0.9s ease-in-out infinite alternate;
+  --animate-rain-fall: rain-fall 0.9s linear infinite;
+  --animate-snow-fall: snow-fall 6s linear infinite;
+
+  @keyframes rain-fall {
+    from { transform: translate3d(0, -10vh, 0) rotate(10deg); }
+    to { transform: translate3d(-40px, 115vh, 0) rotate(10deg); }
+  }
+  @keyframes snow-fall {
+    0% { transform: translate3d(0, -5vh, 0); }
+    50% { transform: translate3d(24px, 55vh, 0); }
+    100% { transform: translate3d(-12px, 110vh, 0); }
+  }
 
   @keyframes twinkle {
     0%, 100% { opacity: 1; transform: scale(1); }

@@ -4,18 +4,22 @@ import { LiquidGlass } from "./liquid-glass";
 
 interface RadioDockProps {
   isPlaying: boolean;
+  audioStatus: "idle" | "loading" | "playing" | "error";
   radioMeta: RadioMeta;
   volume: number;
   phase: SkyPhase;
+  zenDimmed?: boolean;
   onToggleRadio: () => void;
   onSetVolume: (v: number) => void;
 }
 
 export function RadioDock({
   isPlaying,
+  audioStatus,
   radioMeta,
   volume,
   phase,
+  zenDimmed = false,
   onToggleRadio,
   onSetVolume,
 }: RadioDockProps) {
@@ -33,11 +37,12 @@ export function RadioDock({
       blur={3}
     >
       <aside
-        className="absolute z-10 left-1/2 bottom-7 -translate-x-1/2 rounded-full text-white
+        className={`absolute z-10 left-1/2 bottom-7 -translate-x-1/2 rounded-full text-white
           w-[min(460px,calc(100vw-32px))] h-[66px] flex items-center gap-3 px-2.5
-          max-md:bottom-4 max-md:h-[60px] max-md:gap-2.5 max-md:px-2 animate-rise-in"
+          max-md:bottom-4 max-md:h-[60px] max-md:gap-2.5 max-md:px-2 animate-rise-in
+          transition-opacity duration-700 ${zenDimmed ? "opacity-15 hover:opacity-100" : "opacity-100"}`}
       >
-        {/* Play / Pause */}
+        {/* Play / Pause / Buffering */}
         <button
           className={`relative shrink-0 w-11 h-11 rounded-full grid place-items-center bg-white/92 text-[#2b3540] shadow-[0_6px_20px_rgba(10,14,26,0.18)] border-0 transition-transform duration-200 hover:scale-105 active:scale-95 max-md:w-10 max-md:h-10 ${
             isPlaying ? "ring-4 ring-white/20" : ""
@@ -46,13 +51,17 @@ export function RadioDock({
           onClick={onToggleRadio}
           aria-label={isPlaying ? "Pause radio" : "Play radio"}
         >
-          <Icon name={isPlaying ? "pause" : "play"} size={18} />
+          {audioStatus === "loading" ? (
+            <Icon name="loader" size={18} className="animate-spin" />
+          ) : (
+            <Icon name={isPlaying ? "pause" : "play"} size={18} />
+          )}
         </button>
 
         {/* Station / Track Info */}
         <div className="min-w-0 flex-1 flex flex-col justify-center pr-1">
           <div className="flex items-center gap-2 min-w-0">
-            {isPlaying && (
+            {isPlaying && audioStatus !== "loading" && (
               <span className="shrink-0 flex items-end gap-[2px] h-3" aria-hidden="true">
                 <span className="w-[2.5px] h-full rounded-full bg-white/90 origin-bottom animate-eq-bar" />
                 <span
@@ -66,11 +75,21 @@ export function RadioDock({
               </span>
             )}
             <span className="truncate text-white/95 text-[13px] font-medium tracking-[0.01em]">
-              {isPlaying ? radioMeta.title : "Ready to listen"}
+              {audioStatus === "error"
+                ? "Stream unavailable"
+                : audioStatus === "loading"
+                  ? "Connecting…"
+                  : isPlaying
+                    ? radioMeta.title
+                    : "Ready to listen"}
             </span>
           </div>
           <span className="mt-0.5 truncate text-white/55 text-[10px] font-medium tracking-[0.1em] uppercase">
-            {isPlaying ? radioMeta.station : "Box Radio · Lofi"}
+            {audioStatus === "error"
+              ? "Tap play to retry"
+              : isPlaying
+                ? radioMeta.station
+                : "Lofi · Ambient"}
           </span>
         </div>
 

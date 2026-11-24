@@ -13,6 +13,10 @@ import {
   X,
   Radio,
   RotateCcw,
+  CloudRain,
+  Wind,
+  Flame,
+  Loader2,
 } from "lucide-react";
 
 export type IconName =
@@ -29,7 +33,11 @@ export type IconName =
   | "sliders"
   | "close"
   | "radio"
-  | "reset";
+  | "reset"
+  | "rain"
+  | "wind"
+  | "fire"
+  | "loader";
 
 const ICONS = {
   play: Play,
@@ -46,6 +54,10 @@ const ICONS = {
   close: X,
   radio: Radio,
   reset: RotateCcw,
+  rain: CloudRain,
+  wind: Wind,
+  fire: Flame,
+  loader: Loader2,
 } as const;
 
 export function Icon({

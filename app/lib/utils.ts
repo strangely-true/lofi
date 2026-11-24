@@ -1,8 +1,11 @@
 import type { MoonData } from "./types";
 
 /* ── time / date (hydration-safe, no Intl) ── */
-export function formatTime(date: Date) {
-  return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+export function formatTime(date: Date, use12h = false) {
+  const rawH = date.getHours();
+  const h = use12h ? (rawH % 12 || 12) : rawH;
+  const m = date.getMinutes().toString().padStart(2, "0");
+  return `${h.toString().padStart(2, "0")}:${m}`;
 }
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

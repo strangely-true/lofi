@@ -8,11 +8,12 @@ interface TopBarProps {
   phase: SkyPhase;
   moonData: MoonData;
   isFullscreen: boolean;
+  zenDimmed?: boolean;
   onToggleFullscreen: () => void;
   onToggleDrawer: () => void;
 }
 
-export function TopBar({ locationName, weather, phase, moonData, isFullscreen, onToggleFullscreen, onToggleDrawer }: TopBarProps) {
+export function TopBar({ locationName, weather, phase, moonData, isFullscreen, zenDimmed = false, onToggleFullscreen, onToggleDrawer }: TopBarProps) {
   const appearance = phase === "night" ? "dark" : "light";
   const statusText = phase === "night"
     ? `${moonData.name} ${moonData.emoji}`
@@ -21,7 +22,7 @@ export function TopBar({ locationName, weather, phase, moonData, isFullscreen, o
     : "Soft daylight";
 
   return (
-    <header className="absolute z-5 top-6 left-7 right-7 flex items-center justify-between max-md:top-3.5 max-md:left-3.5 max-md:right-3.5 max-md:flex-wrap max-md:gap-2">
+    <header className={`absolute z-5 top-6 left-7 right-7 flex items-center justify-between transition-opacity duration-700 max-md:top-3.5 max-md:left-3.5 max-md:right-3.5 max-md:flex-wrap max-md:gap-2 ${zenDimmed ? "opacity-15 hover:opacity-100" : "opacity-100"}`}>
       {/* Location */}
       <LiquidGlass asChild interactive material="clear" appearance={appearance} refraction={6} bezel={14} blur={2}>
         <button className="h-10 rounded-full flex items-center gap-2 px-4 text-white/90 text-xs font-[450] tracking-wide transition" type="button">

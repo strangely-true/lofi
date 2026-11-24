@@ -9,6 +9,8 @@ interface FocusTimerProps {
   duration: number;
   remaining: number;
   timerRunning: boolean;
+  focusPhase: "focus" | "break";
+  sessionsCompleted: number;
   customOpen: boolean;
   customMinutes: string;
   phase: SkyPhase;
@@ -27,6 +29,8 @@ export function FocusTimer({
   duration,
   remaining,
   timerRunning,
+  focusPhase,
+  sessionsCompleted,
   customOpen,
   customMinutes,
   phase,
@@ -97,7 +101,7 @@ export function FocusTimer({
           className="relative z-[2] w-[calc(100%-22px)] h-[calc(100%-22px)] rounded-full flex flex-col items-center justify-center text-white"
         >
           <span className="mb-2 text-white/60 text-[10px] font-medium tracking-[0.32em]">
-            {timerRunning ? "FOCUSING" : "PAUSED"}
+            {!timerRunning ? "PAUSED" : focusPhase === "break" ? "BREAK" : "FOCUSING"}
           </span>
           <time
             className="font-serif text-[clamp(50px,6.5vw,84px)] leading-none -tracking-[0.04em] tabular-nums font-light"
@@ -206,6 +210,21 @@ export function FocusTimer({
           Exit
         </button>
       </div>
+
+      {/* Session dots */}
+      {sessionsCompleted > 0 && (
+        <div
+          className="flex items-center gap-1.5 mt-3"
+          aria-label={`${sessionsCompleted} focus session${sessionsCompleted === 1 ? "" : "s"} completed`}
+        >
+          {Array.from({ length: Math.min(sessionsCompleted, 8) }).map((_, i) => (
+            <span key={i} className="w-1.5 h-1.5 rounded-full bg-white/75 shadow-[0_0_6px_rgba(255,255,255,0.5)]" />
+          ))}
+          {sessionsCompleted > 8 && (
+            <span className="text-[10px] text-white/60 ml-0.5">+{sessionsCompleted - 8}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

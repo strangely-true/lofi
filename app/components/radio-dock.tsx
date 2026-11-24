@@ -44,8 +44,8 @@ export function RadioDock({
       >
         {/* Play / Pause / Buffering */}
         <button
-          className={`relative shrink-0 w-11 h-11 rounded-full grid place-items-center bg-white/92 text-[#2b3540] shadow-[0_6px_20px_rgba(10,14,26,0.18)] border-0 transition-transform duration-200 hover:scale-105 active:scale-95 max-md:w-10 max-md:h-10 ${
-            isPlaying ? "ring-4 ring-white/20" : ""
+          className={`relative shrink-0 w-11 h-11 rounded-full grid place-items-center bg-white/95 text-[#18202c] shadow-[0_6px_20px_rgba(10,14,26,0.2)] border-0 transition-all duration-200 hover:scale-105 hover:bg-white active:scale-95 max-md:w-10 max-md:h-10 ${
+            isPlaying ? "ring-4 ring-white/25" : ""
           }`}
           type="button"
           onClick={onToggleRadio}

@@ -1,10 +1,13 @@
+import type { SkyPhase } from "../lib/types";
 import { Icon } from "./icons";
+import { LiquidGlass } from "./liquid-glass";
 
 interface SideDrawerProps {
   open: boolean;
   volume: number;
   radioUrl: string;
   isFullscreen: boolean;
+  phase: SkyPhase;
   onToggle: () => void;
   onSetVolume: (v: number) => void;
   onSetRadioUrl: (v: string) => void;
@@ -12,27 +15,31 @@ interface SideDrawerProps {
 }
 
 export function SideDrawer({
-  open, volume, radioUrl, isFullscreen,
+  open, volume, radioUrl, isFullscreen, phase,
   onToggle, onSetVolume, onSetRadioUrl, onToggleFullscreen,
 }: SideDrawerProps) {
+  const appearance = phase === "night" ? "dark" : "light";
   return (
     <div className="fixed z-15 right-0 top-1/2 -translate-y-1/2 flex items-center pointer-events-none max-md:top-auto max-md:bottom-[90px] max-md:translate-y-0">
       {/* Tab: >| */}
-      <button
-        className="pointer-events-auto w-7 h-14 border border-white/12 border-r-0 rounded-l-[10px] grid place-items-center bg-white/[0.07] text-white/50 backdrop-blur-[18px] backdrop-saturate-[130%] cursor-pointer hover:text-white/85 hover:bg-white/12 hover:w-8 transition-all duration-300 max-md:w-6 max-md:h-12"
-        type="button"
-        onClick={onToggle}
-        aria-label={open ? "Close panel" : "Open panel"}
-      >
-        <Icon name={open ? "panel-close" : "panel-open"} size={16} />
-      </button>
+      <LiquidGlass asChild interactive material="clear" appearance={appearance} refraction={6} bezel={12} blur={2}>
+        <button
+          className="pointer-events-auto w-7 h-14 rounded-l-[12px] grid place-items-center text-white/65 cursor-pointer hover:text-white/95 hover:w-8 transition-all duration-300 max-md:w-6 max-md:h-12"
+          type="button"
+          onClick={onToggle}
+          aria-label={open ? "Close panel" : "Open panel"}
+        >
+          <Icon name={open ? "panel-close" : "panel-open"} size={16} />
+        </button>
+      </LiquidGlass>
 
       {/* Panel */}
-      <div className={`glass-heavy pointer-events-auto w-[260px] max-h-[70vh] overflow-y-auto rounded-l-[18px] border-r-0 p-5 flex flex-col gap-4 transition-all duration-350 ease-[cubic-bezier(0.2,0.8,0.2,1)]
-        max-md:w-[230px] max-md:max-h-[50vh] max-md:p-4
-        ${open ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}
-        [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent]`}
-      >
+      <LiquidGlass asChild material="regular" appearance={appearance} refraction={14} bezel={22} blur={4}>
+        <div className={`pointer-events-auto w-[260px] rounded-[18px] text-white transition-all duration-350 ease-[cubic-bezier(0.2,0.8,0.2,1)]
+          max-md:w-[230px]
+          ${open ? "mr-3 translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
+        >
+          <div className="max-h-[70vh] max-md:max-h-[50vh] overflow-y-auto p-5 max-md:p-4 flex flex-col gap-4 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
         {/* Radio section */}
         <Section title="Radio">
           <Row label="Stream">
@@ -75,8 +82,10 @@ export function SideDrawer({
             <Icon name="link" size={12} />
             <span>strangelytrue.vercel.app</span>
           </a>
+          </div>
+          </div>
         </div>
-      </div>
+      </LiquidGlass>
     </div>
   );
 }

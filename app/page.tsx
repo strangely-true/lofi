@@ -194,11 +194,11 @@ export default function Home() {
 
       <section className="absolute z-[3] inset-[74px_24px_118px] grid place-items-center transition-all duration-600 ease-[cubic-bezier(0.2,0.8,0.2,1)] max-md:inset-[70px_12px_104px]">
         {!timerMode ? (
-          <ClockDisplay timeLabel={timeLabel} dateLabel={dateLabel} weather={weather} now={now} onStartTimer={() => setTimerMode(true)} />
+          <ClockDisplay timeLabel={timeLabel} dateLabel={dateLabel} weather={weather} now={now} phase={phase} onStartTimer={() => setTimerMode(true)} />
         ) : (
           <FocusTimer
             duration={duration} remaining={remaining} timerRunning={timerRunning}
-            customOpen={customOpen} customMinutes={customMinutes}
+            customOpen={customOpen} customMinutes={customMinutes} phase={phase}
             onStartPreset={startPreset} onToggleRunning={toggleTimerRunning} onClose={closeTimer}
             onSetCustomOpen={setCustomOpen} onSetCustomMinutes={setCustomMinutes}
           />
@@ -206,12 +206,12 @@ export default function Home() {
       </section>
 
       <RadioDock
-        isPlaying={isPlaying} radioMeta={radioMeta} volume={volume} radioUrl={radioUrl} radioOpen={radioOpen}
+        isPlaying={isPlaying} radioMeta={radioMeta} volume={volume} radioUrl={radioUrl} radioOpen={radioOpen} phase={phase}
         onToggleRadio={toggleRadio} onSetVolume={setVolume} onSetRadioUrl={setRadioUrl} onToggleRadioOpen={() => setRadioOpen((v) => !v)}
       />
 
       <SideDrawer
-        open={drawerOpen} volume={volume} radioUrl={radioUrl} isFullscreen={isFullscreen}
+        open={drawerOpen} volume={volume} radioUrl={radioUrl} isFullscreen={isFullscreen} phase={phase}
         onToggle={() => setDrawerOpen((v) => !v)} onSetVolume={setVolume} onSetRadioUrl={setRadioUrl} onToggleFullscreen={toggleFullscreen}
       />
 

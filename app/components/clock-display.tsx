@@ -1,15 +1,18 @@
-import type { WeatherInfo } from "../lib/types";
+import type { SkyPhase, WeatherInfo } from "../lib/types";
 import { Icon } from "./icons";
+import { LiquidGlass } from "./liquid-glass";
 
 interface ClockDisplayProps {
   timeLabel: string;
   dateLabel: string;
   weather: WeatherInfo | null;
   now: Date;
+  phase: SkyPhase;
   onStartTimer: () => void;
 }
 
-export function ClockDisplay({ timeLabel, dateLabel, weather, now, onStartTimer }: ClockDisplayProps) {
+export function ClockDisplay({ timeLabel, dateLabel, weather, now, phase, onStartTimer }: ClockDisplayProps) {
+  const appearance = phase === "night" ? "dark" : "light";
   return (
     <div className="flex flex-col items-center -mt-6 animate-rise-in">
       <time
@@ -34,14 +37,16 @@ export function ClockDisplay({ timeLabel, dateLabel, weather, now, onStartTimer 
         </div>
       )}
 
-      <button
-        className="glass h-11 rounded-full flex items-center gap-2.5 px-5 text-xs font-[450] tracking-[0.04em] opacity-[0.78] hover:opacity-100 hover:-translate-y-0.5 hover:bg-white/[0.16] transition"
-        type="button"
-        onClick={onStartTimer}
-      >
-        <Icon name="timer" size={18} />
-        <span>Start focus</span>
-      </button>
+      <LiquidGlass asChild interactive material="clear" appearance={appearance} refraction={8} bezel={16} blur={2}>
+        <button
+          className="h-11 rounded-full flex items-center gap-2.5 px-5 text-white text-xs font-[450] tracking-[0.04em] opacity-[0.88] hover:opacity-100 transition"
+          type="button"
+          onClick={onStartTimer}
+        >
+          <Icon name="timer" size={18} />
+          <span>Start focus</span>
+        </button>
+      </LiquidGlass>
     </div>
   );
 }

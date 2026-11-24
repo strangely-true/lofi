@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { SkyPhase } from "../lib/types";
 import type { Star } from "../lib/utils";
 
@@ -19,9 +20,9 @@ export function StarField({ phase, stars, dimStars }: { phase: SkyPhase; stars: 
 export function ShootingStars({ phase }: { phase: SkyPhase }) {
   return (
     <div className={`absolute inset-0 -z-10 pointer-events-none transition-opacity duration-[2000ms] ${phase === "night" ? "opacity-100" : "opacity-0"}`} aria-hidden="true">
-      <div className="absolute top-[12%] left-[20%] w-20 h-[1.5px] rounded-[50px] bg-gradient-to-r from-white/90 to-transparent opacity-0 -rotate-[35deg] animate-shoot" />
-      <div className="absolute top-[25%] left-[55%] w-15 h-[1.5px] rounded-[50px] bg-gradient-to-r from-white/90 to-transparent opacity-0 -rotate-[40deg] animate-shoot" style={{ animationDuration: "8s", animationDelay: "7s" }} />
-      <div className="absolute top-[8%] left-[72%] w-25 h-[1.5px] rounded-[50px] bg-gradient-to-r from-white/90 to-transparent opacity-0 -rotate-[30deg] animate-shoot" style={{ animationDuration: "10s", animationDelay: "12s" }} />
+      <div className="absolute top-[12%] left-[18%] w-20 h-[1.5px] rounded-full bg-gradient-to-l from-white/95 via-white/50 to-transparent opacity-0 animate-shoot" style={{ "--shoot-angle": "32deg" } as CSSProperties} />
+      <div className="absolute top-[22%] left-[48%] w-16 h-[1.5px] rounded-full bg-gradient-to-l from-white/95 via-white/50 to-transparent opacity-0 animate-shoot" style={{ "--shoot-angle": "38deg", animationDuration: "8s", animationDelay: "7s" } as CSSProperties} />
+      <div className="absolute top-[8%] left-[64%] w-24 h-[1.5px] rounded-full bg-gradient-to-l from-white/95 via-white/50 to-transparent opacity-0 animate-shoot" style={{ "--shoot-angle": "28deg", animationDuration: "10s", animationDelay: "12s" } as CSSProperties} />
     </div>
   );
 }

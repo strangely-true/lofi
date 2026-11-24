@@ -18,21 +18,14 @@ export function formatTimer(seconds: number) {
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-/* ── moon phase (simplified Julian-day method) ── */
+/* ── moon phase (exact JD from UTC epoch, Meeus synodic month) ── */
+const SYNODIC_MONTH = 29.530588853;
+const NEW_MOON_EPOCH_JD = 2451550.259722; // 2000-01-06 18:14 UT
+
 export function getMoonPhase(date: Date): MoonData {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-
-  let c: number, e: number;
-  if (month < 3) { c = year - 1; e = month + 12; } else { c = year; e = month; }
-
-  let jd = Math.floor(365.25 * (c + 4716)) + Math.floor(30.6001 * (e + 1)) + day - 1524.5;
-  const b = Math.floor(jd / 36524.25);
-  jd = jd + 1 + b - Math.floor(b / 4);
-
-  const daysSinceNew = (jd - 2451550.1) % 29.530588853;
-  const phase = ((daysSinceNew + 29.530588853) % 29.530588853) / 29.530588853;
+  const jd = date.getTime() / 86400000 + 2440587.5;
+  const daysSinceNew = (jd - NEW_MOON_EPOCH_JD) % SYNODIC_MONTH;
+  const phase = ((daysSinceNew + SYNODIC_MONTH) % SYNODIC_MONTH) / SYNODIC_MONTH;
 
   const TABLE: [number, string, string][] = [
     [0.0625, "New Moon", "🌑"], [0.1875, "Waxing Crescent", "🌒"],

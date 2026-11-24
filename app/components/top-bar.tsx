@@ -9,9 +9,10 @@ interface TopBarProps {
   moonData: MoonData;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
+  onToggleDrawer: () => void;
 }
 
-export function TopBar({ locationName, weather, phase, moonData, isFullscreen, onToggleFullscreen }: TopBarProps) {
+export function TopBar({ locationName, weather, phase, moonData, isFullscreen, onToggleFullscreen, onToggleDrawer }: TopBarProps) {
   const appearance = phase === "night" ? "dark" : "light";
   const statusText = phase === "night"
     ? `${moonData.name} ${moonData.emoji}`
@@ -56,6 +57,18 @@ export function TopBar({ locationName, weather, phase, moonData, isFullscreen, o
             aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           >
             <Icon name={isFullscreen ? "exit-fullscreen" : "fullscreen"} size={16} />
+          </button>
+        </LiquidGlass>
+
+        {/* Controls drawer toggle */}
+        <LiquidGlass asChild interactive material="clear" appearance={appearance} refraction={6} bezel={14} blur={2}>
+          <button
+            className="w-10 h-10 rounded-full grid place-items-center text-white/75 hover:text-white/95 transition max-md:w-9 max-md:h-9"
+            type="button"
+            onClick={onToggleDrawer}
+            aria-label="Open controls"
+          >
+            <Icon name="sliders" size={16} />
           </button>
         </LiquidGlass>
       </div>

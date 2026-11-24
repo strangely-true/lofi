@@ -6,80 +6,94 @@ interface RadioDockProps {
   isPlaying: boolean;
   radioMeta: RadioMeta;
   volume: number;
-  radioUrl: string;
-  radioOpen: boolean;
   phase: SkyPhase;
   onToggleRadio: () => void;
   onSetVolume: (v: number) => void;
-  onSetRadioUrl: (v: string) => void;
-  onToggleRadioOpen: () => void;
 }
 
 export function RadioDock({
-  isPlaying, radioMeta, volume, radioUrl, radioOpen, phase,
-  onToggleRadio, onSetVolume, onSetRadioUrl, onToggleRadioOpen,
+  isPlaying,
+  radioMeta,
+  volume,
+  phase,
+  onToggleRadio,
+  onSetVolume,
 }: RadioDockProps) {
   const appearance = phase === "night" ? "dark" : "light";
+  const volumeIcon =
+    volume === 0 ? "volume-mute" : volume < 45 ? "volume-low" : "volume";
+
   return (
-    <LiquidGlass asChild fluid material="clear" appearance={appearance} refraction={12} bezel={20} blur={3}>
-      <aside className={`absolute z-10 left-1/2 bottom-7 -translate-x-1/2 rounded-[22px] text-white
-        w-[min(520px,calc(100vw-48px))] grid items-center gap-2 px-3 py-2.5
-        max-md:bottom-3.5 max-md:w-[calc(100vw-28px)] max-md:rounded-[20px]
-        ${radioOpen
-          ? "h-[134px] items-start pt-2.5 grid-cols-[50px_1fr_minmax(112px,150px)_42px] max-md:h-[128px] max-md:grid-cols-[46px_1fr_80px_36px]"
-          : "h-[70px] grid-cols-[50px_1fr_minmax(112px,150px)_42px] max-md:h-16 max-md:grid-cols-[46px_1fr_80px_36px]"
-        }`}
+    <LiquidGlass
+      asChild
+      material="clear"
+      appearance={appearance}
+      refraction={10}
+      bezel={18}
+      blur={3}
+    >
+      <aside
+        className="absolute z-10 left-1/2 bottom-7 -translate-x-1/2 rounded-full text-white
+          w-[min(460px,calc(100vw-32px))] h-[66px] flex items-center gap-3 px-2.5
+          max-md:bottom-4 max-md:h-[60px] max-md:gap-2.5 max-md:px-2 animate-rise-in"
       >
-      {/* Play button */}
-      <button
-        className="w-12 h-12 rounded-full grid place-items-center bg-white/90 text-[#5a6a76] shadow-[0_6px_20px_rgba(10,14,26,0.12)] border-0 hover:scale-[1.04] hover:bg-white transition max-md:w-11 max-md:h-11"
-        type="button"
-        onClick={onToggleRadio}
-        aria-label={isPlaying ? "Pause radio" : "Play radio"}
-      >
-        <Icon name={isPlaying ? "pause" : "play"} size={19} />
-      </button>
+        {/* Play / Pause */}
+        <button
+          className={`relative shrink-0 w-11 h-11 rounded-full grid place-items-center bg-white/92 text-[#2b3540] shadow-[0_6px_20px_rgba(10,14,26,0.18)] border-0 transition-transform duration-200 hover:scale-105 active:scale-95 max-md:w-10 max-md:h-10 ${
+            isPlaying ? "ring-4 ring-white/20" : ""
+          }`}
+          type="button"
+          onClick={onToggleRadio}
+          aria-label={isPlaying ? "Pause radio" : "Play radio"}
+        >
+          <Icon name={isPlaying ? "pause" : "play"} size={18} />
+        </button>
 
-      {/* Meta */}
-      <button className="min-w-0 border-0 flex flex-col items-start bg-transparent px-2" type="button" onClick={onToggleRadioOpen}>
-        <span className="max-w-full overflow-hidden text-white/92 text-[13px] font-[450] text-ellipsis whitespace-nowrap">
-          {isPlaying ? radioMeta.title : "Ready to listen"}
-        </span>
-        <span className="mt-[3px] text-white/48 text-[10px] font-medium tracking-[0.08em] uppercase">
-          {isPlaying ? radioMeta.station : "Box Radio · Lofi"}
-        </span>
-      </button>
+        {/* Station / Track Info */}
+        <div className="min-w-0 flex-1 flex flex-col justify-center pr-1">
+          <div className="flex items-center gap-2 min-w-0">
+            {isPlaying && (
+              <span className="shrink-0 flex items-end gap-[2px] h-3" aria-hidden="true">
+                <span className="w-[2.5px] h-full rounded-full bg-white/90 origin-bottom animate-eq-bar" />
+                <span
+                  className="w-[2.5px] h-full rounded-full bg-white/90 origin-bottom animate-eq-bar"
+                  style={{ animationDelay: "0.25s", animationDuration: "0.7s" }}
+                />
+                <span
+                  className="w-[2.5px] h-full rounded-full bg-white/90 origin-bottom animate-eq-bar"
+                  style={{ animationDelay: "0.45s", animationDuration: "1.1s" }}
+                />
+              </span>
+            )}
+            <span className="truncate text-white/95 text-[13px] font-medium tracking-[0.01em]">
+              {isPlaying ? radioMeta.title : "Ready to listen"}
+            </span>
+          </div>
+          <span className="mt-0.5 truncate text-white/55 text-[10px] font-medium tracking-[0.1em] uppercase">
+            {isPlaying ? radioMeta.station : "Box Radio · Lofi"}
+          </span>
+        </div>
 
-      {/* Volume */}
-      <div className="flex items-center gap-2 text-white/[0.68]">
-        <Icon name="volume" size={18} />
-        <input type="range" min="0" max="100" value={volume} onChange={(e) => onSetVolume(Number(e.target.value))}
-          className="w-full h-[3px] accent-white/90 cursor-pointer" aria-label="Volume" />
-      </div>
-
-      {/* Settings toggle */}
-      <button
-        className="w-[42px] h-[42px] rounded-full grid place-items-center bg-transparent border-0 text-white/58 hover:text-white/85 transition"
-        type="button"
-        onClick={onToggleRadioOpen}
-        aria-label="Radio settings"
-      >
-        <Icon name="settings" size={18} />
-      </button>
-
-      {/* URL form */}
-      {radioOpen && (
-        <LiquidGlass asChild material="regular" appearance={appearance} refraction={6} bezel={14} blur={3}>
-          <form
-            className="absolute left-3 right-3 bottom-3 h-12 rounded-[14px] grid items-center gap-2 px-2 py-[5px] grid-cols-[112px_1fr] text-white max-md:grid-cols-[1fr]"
-            onSubmit={(e) => { e.preventDefault(); onToggleRadioOpen(); }}
+        {/* Volume */}
+        <div className="shrink-0 flex items-center gap-2 pr-2.5 max-md:pr-1.5">
+          <button
+            type="button"
+            onClick={() => onSetVolume(volume === 0 ? 55 : 0)}
+            className="w-7 h-7 rounded-full grid place-items-center text-white/70 hover:text-white transition-colors"
+            aria-label={volume === 0 ? "Unmute" : "Mute"}
           >
-            <label className="text-white/52 text-[10px] font-medium uppercase tracking-[0.08em] text-right max-md:hidden" htmlFor="radio-url">Stream URL</label>
-            <input id="radio-url" type="url" value={radioUrl} onChange={(e) => onSetRadioUrl(e.target.value)}
-              className="w-full h-9 border border-white/14 rounded-[10px] bg-white/[0.08] text-white px-2.5 text-[11px] outline-none" />
-          </form>
-        </LiquidGlass>
-      )}
+            <Icon name={volumeIcon} size={16} />
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={volume}
+            onChange={(e) => onSetVolume(Number(e.target.value))}
+            className="w-20 max-md:w-14 h-[3px] accent-white/90 cursor-pointer"
+            aria-label="Volume"
+          />
+        </div>
       </aside>
     </LiquidGlass>
   );

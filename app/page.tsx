@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { SkyPhase, WeatherInfo, RadioMeta } from "./lib/types";
-import { formatTime, formatDateLabel, getMoonPhase, generateStars } from "./lib/utils";
+import { formatTime, formatTimer, formatDateLabel, getMoonPhase, generateStars } from "./lib/utils";
 import { DEFAULT_RADIO_URL } from "./lib/constants";
 import { SKY_GRADIENTS } from "./lib/sky";
 import { fetchLocationByIP, browserGeolocation, reverseGeocode, fetchWeatherAndSolar } from "./lib/data";
@@ -44,7 +44,6 @@ export default function Home() {
   const [customMinutes, setCustomMinutes] = useState("30");
 
   // radio
-  const [radioOpen, setRadioOpen] = useState(false);
   const [radioUrl, setRadioUrl] = useState(DEFAULT_RADIO_URL);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(55);
@@ -135,6 +134,17 @@ export default function Home() {
     return () => document.removeEventListener("fullscreenchange", h);
   }, []);
 
+  // dynamic document title: timer when active, weather when inactive
+  useEffect(() => {
+    if (timerMode) {
+      document.title = `${formatTimer(remaining)} · ${timerRunning ? "Focus" : "Paused"} — Still`;
+    } else if (weather) {
+      document.title = `${weather.temperature}°C ${weather.description} — Still`;
+    } else {
+      document.title = "Still — Lofi Focus";
+    }
+  }, [timerMode, remaining, timerRunning, weather]);
+
   /* ───────── handlers ───────── */
   const toggleRadio = useCallback(async () => {
     const a = audioRef.current; if (!a) return;
@@ -190,29 +200,43 @@ export default function Home() {
         moonData={moonData}
         isFullscreen={isFullscreen}
         onToggleFullscreen={toggleFullscreen}
+        onToggleDrawer={() => setDrawerOpen((v) => !v)}
       />
 
-      <section className="absolute z-[3] inset-[74px_24px_118px] grid place-items-center transition-all duration-600 ease-[cubic-bezier(0.2,0.8,0.2,1)] max-md:inset-[70px_12px_104px]">
-        {!timerMode ? (
-          <ClockDisplay timeLabel={timeLabel} dateLabel={dateLabel} weather={weather} now={now} phase={phase} onStartTimer={() => setTimerMode(true)} />
-        ) : (
-          <FocusTimer
-            duration={duration} remaining={remaining} timerRunning={timerRunning}
-            customOpen={customOpen} customMinutes={customMinutes} phase={phase}
-            onStartPreset={startPreset} onToggleRunning={toggleTimerRunning} onClose={closeTimer}
-            onSetCustomOpen={setCustomOpen} onSetCustomMinutes={setCustomMinutes}
-          />
-        )}
+      <section className="absolute z-[3] inset-[74px_24px_118px] grid place-items-center max-md:inset-[70px_12px_104px]">
+        <ClockDisplay
+          timeLabel={timeLabel}
+          dateLabel={dateLabel}
+          weather={weather}
+          now={now}
+          phase={phase}
+          minimized={timerMode}
+          onStartTimer={() => setTimerMode(true)}
+        />
+        <FocusTimer
+          active={timerMode}
+          duration={duration}
+          remaining={remaining}
+          timerRunning={timerRunning}
+          customOpen={customOpen}
+          customMinutes={customMinutes}
+          phase={phase}
+          onStartPreset={startPreset}
+          onToggleRunning={toggleTimerRunning}
+          onClose={closeTimer}
+          onSetCustomOpen={setCustomOpen}
+          onSetCustomMinutes={setCustomMinutes}
+        />
       </section>
 
       <RadioDock
-        isPlaying={isPlaying} radioMeta={radioMeta} volume={volume} radioUrl={radioUrl} radioOpen={radioOpen} phase={phase}
-        onToggleRadio={toggleRadio} onSetVolume={setVolume} onSetRadioUrl={setRadioUrl} onToggleRadioOpen={() => setRadioOpen((v) => !v)}
+        isPlaying={isPlaying} radioMeta={radioMeta} volume={volume} phase={phase}
+        onToggleRadio={toggleRadio} onSetVolume={setVolume}
       />
 
       <SideDrawer
         open={drawerOpen} volume={volume} radioUrl={radioUrl} isFullscreen={isFullscreen} phase={phase}
-        onToggle={() => setDrawerOpen((v) => !v)} onSetVolume={setVolume} onSetRadioUrl={setRadioUrl} onToggleFullscreen={toggleFullscreen}
+        onClose={() => setDrawerOpen(false)} onSetVolume={setVolume} onSetRadioUrl={setRadioUrl} onToggleFullscreen={toggleFullscreen}
       />
 
       {/* Audio element */}

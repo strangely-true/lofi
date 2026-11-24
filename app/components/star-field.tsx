@@ -17,12 +17,37 @@ export function StarField({ phase, stars, dimStars }: { phase: SkyPhase; stars: 
   );
 }
 
+const SHOOTING_STARS = [
+  { top: "10%", left: "16%", width: 84, angle: 34, dx: 230, dy: 155, duration: 7, delay: 2 },
+  { top: "18%", left: "72%", width: 72, angle: -38, dx: -210, dy: 164, duration: 9, delay: 6 },
+  { top: "8%", left: "44%", width: 92, angle: 26, dx: 260, dy: 127, duration: 11, delay: 10 },
+  { top: "24%", left: "84%", width: 68, angle: -44, dx: -185, dy: 179, duration: 8.5, delay: 14 },
+  { top: "14%", left: "28%", width: 76, angle: 46, dx: 180, dy: 186, duration: 12, delay: 19 },
+];
+
 export function ShootingStars({ phase }: { phase: SkyPhase }) {
   return (
     <div className={`absolute inset-0 -z-10 pointer-events-none transition-opacity duration-[2000ms] ${phase === "night" ? "opacity-100" : "opacity-0"}`} aria-hidden="true">
-      <div className="absolute top-[12%] left-[18%] w-20 h-[1.5px] rounded-full bg-gradient-to-l from-white/95 via-white/50 to-transparent opacity-0 animate-shoot" style={{ "--shoot-angle": "32deg" } as CSSProperties} />
-      <div className="absolute top-[22%] left-[48%] w-16 h-[1.5px] rounded-full bg-gradient-to-l from-white/95 via-white/50 to-transparent opacity-0 animate-shoot" style={{ "--shoot-angle": "38deg", animationDuration: "8s", animationDelay: "7s" } as CSSProperties} />
-      <div className="absolute top-[8%] left-[64%] w-24 h-[1.5px] rounded-full bg-gradient-to-l from-white/95 via-white/50 to-transparent opacity-0 animate-shoot" style={{ "--shoot-angle": "28deg", animationDuration: "10s", animationDelay: "12s" } as CSSProperties} />
+      {SHOOTING_STARS.map((s, i) => (
+        <div
+          key={i}
+          className={`absolute h-[1.5px] rounded-full opacity-0 animate-shoot ${
+            s.dx >= 0
+              ? "bg-gradient-to-l from-white/95 via-white/50 to-transparent"
+              : "bg-gradient-to-r from-white/95 via-white/50 to-transparent"
+          }`}
+          style={{
+            top: s.top,
+            left: s.left,
+            width: `${s.width}px`,
+            "--shoot-angle": `${s.angle}deg`,
+            "--shoot-dx": `${s.dx}px`,
+            "--shoot-dy": `${s.dy}px`,
+            animationDuration: `${s.duration}s`,
+            animationDelay: `${s.delay}s`,
+          } as CSSProperties}
+        />
+      ))}
     </div>
   );
 }

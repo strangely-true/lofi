@@ -1,7 +1,7 @@
 export const PRESETS = [
-  { label: "Focus", minutes: 25 },
-  { label: "Short", minutes: 5 },
-  { label: "Deep", minutes: 50 },
+  { label: "Pomodoro", minutes: 25, kind: "focus" as const },
+  { label: "Short", minutes: 5, kind: "break" as const },
+  { label: "Long", minutes: 15, kind: "longBreak" as const },
 ] as const;
 
 export const DEFAULT_RADIO_URL = "https://boxradio-edge-00.streamafrica.net/lofi";

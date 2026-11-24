@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { SkyPhase, WeatherInfo, RadioMeta } from "./lib/types";
-import { formatTime, formatTimer, formatDateLabel, getMoonPhase, generateStars } from "./lib/utils";
+import { formatTime, formatTimer, formatDateLabel, getMoonPhase, getCelestialState, generateStars } from "./lib/utils";
 import { DEFAULT_RADIO_URL } from "./lib/constants";
 import { SKY_GRADIENTS } from "./lib/sky";
 import { fetchLocationByIP, browserGeolocation, reverseGeocode, fetchWeatherAndSolar } from "./lib/data";
@@ -12,7 +12,7 @@ import { StarField, ShootingStars } from "./components/star-field";
 import { Celestial } from "./components/celestial";
 import { Clouds } from "./components/clouds";
 import { WeatherParticles } from "./components/weather-particles";
-import { Character } from "./components/character";
+import { Horizon } from "./components/horizon";
 import { TopBar } from "./components/top-bar";
 import { ClockDisplay } from "./components/clock-display";
 import { FocusTimer } from "./components/focus-timer";
@@ -30,19 +30,20 @@ const PREFS_KEY = "still-prefs-v1";
 export default function Home() {
   /* ── state ── */
   const [mounted, setMounted] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
+  const [animateCelestial, setAnimateCelestial] = useState(false);
   const [now, setNow] = useState(() => new Date(0));
 
-  // sky
-  const [solarProgress, setSolarProgress] = useState<number | null>(null);
-  const [solarPhase, setSolarPhase] = useState<SkyPhase | null>(null);
+  // sky & location
+  const [coords, setCoords] = useState<{ lat: number | null; lon: number | null }>({ lat: null, lon: null });
   const [skyOverride, setSkyOverride] = useState<"auto" | SkyPhase>("auto");
   const [locationName, setLocationName] = useState("Locating…");
   const [cloudCover, setCloudCover] = useState(20);
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
 
-  // timer
+  // pomodoro timer
   const [timerMode, setTimerMode] = useState(false);
-  const [focusPhase, setFocusPhase] = useState<"focus" | "break">("focus");
+  const [focusPhase, setFocusPhase] = useState<"focus" | "break" | "longBreak">("focus");
   const [duration, setDuration] = useState(25 * 60);
   const [remaining, setRemaining] = useState(25 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
@@ -114,21 +115,31 @@ export default function Home() {
     return () => clearInterval(id);
   }, []);
 
-  // location → weather → solar (IP first, browser fallback)
+  // location → weather (IP first, browser fallback) + snappy initial loader gate
   useEffect(() => {
     let dead = false;
+    const readyTimer = setTimeout(() => {
+      if (!dead) setSceneReady(true);
+    }, 900);
+
     (async () => {
       let lat: number | null = null, lon: number | null = null;
 
       const ip = await fetchLocationByIP();
       if (!dead && ip) {
         lat = ip.lat; lon = ip.lon;
+        setCoords({ lat, lon });
         setLocationName(ip.country ? `${ip.city}, ${ip.country}` : ip.city);
+      }
+      if (!dead) {
+        clearTimeout(readyTimer);
+        setSceneReady(true);
       }
 
       const geo = await browserGeolocation();
       if (!dead && geo) {
         lat = geo.lat; lon = geo.lon;
+        setCoords({ lat, lon });
         const name = await reverseGeocode(geo.lat, geo.lon);
         if (!dead) setLocationName(name);
       }
@@ -140,12 +151,17 @@ export default function Home() {
       if (!dead && result) {
         setWeather(result.weather);
         setCloudCover(result.cloudCover);
-        if (result.solarPhase) setSolarPhase(result.solarPhase);
-        if (result.solarProgress != null) setSolarProgress(result.solarProgress);
       }
     })();
-    return () => { dead = true; };
+    return () => { dead = true; clearTimeout(readyTimer); };
   }, []);
+
+  // enable smooth 2s celestial transitions only after initial placement
+  useEffect(() => {
+    if (!sceneReady) return;
+    const id = setTimeout(() => setAnimateCelestial(true), 250);
+    return () => clearTimeout(id);
+  }, [sceneReady]);
 
   // radio metadata & buffering/error listeners
   useEffect(() => {
@@ -175,33 +191,40 @@ export default function Home() {
     };
   }, [mounted]);
 
-  // timer tick + chime + break auto-switch
+  const advancePomodoro = useCallback(() => {
+    setTimerRunning(false);
+    playTimerChime();
+    setFocusPhase((prev) => {
+      if (prev === "focus") {
+        const nextCount = sessionsCompleted + 1;
+        setSessionsCompleted(nextCount);
+        const isLong = nextCount % 4 === 0;
+        const nextDur = isLong ? 15 * 60 : 5 * 60;
+        setDuration(nextDur);
+        setRemaining(nextDur);
+        return isLong ? "longBreak" : "break";
+      }
+      setDuration(25 * 60);
+      setRemaining(25 * 60);
+      return "focus";
+    });
+  }, [sessionsCompleted]);
+
+  // timer tick
   useEffect(() => {
     if (!timerRunning) return;
     const id = setInterval(() => {
       setRemaining((v) => {
         if (v <= 1) {
           clearInterval(id);
-          setTimerRunning(false);
-          playTimerChime();
-          setFocusPhase((prev) => {
-            if (prev === "focus") {
-              setSessionsCompleted((c) => c + 1);
-              setDuration(5 * 60);
-              setRemaining(5 * 60);
-              return "break";
-            }
-            setDuration(25 * 60);
-            setRemaining(25 * 60);
-            return "focus";
-          });
+          advancePomodoro();
           return 0;
         }
         return v - 1;
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [timerRunning]);
+  }, [timerRunning, advancePomodoro]);
 
   // volume sync
   useEffect(() => { if (audioRef.current) audioRef.current.volume = volume / 100; }, [volume]);
@@ -216,7 +239,7 @@ export default function Home() {
   // dynamic document title: timer when active, weather when inactive
   useEffect(() => {
     if (timerMode) {
-      const label = !timerRunning ? "Paused" : focusPhase === "break" ? "Break" : "Focus";
+      const label = !timerRunning ? "Paused" : focusPhase === "longBreak" ? "Long Break" : focusPhase === "break" ? "Break" : "Pomodoro";
       document.title = `${formatTimer(remaining)} · ${label} — Still`;
     } else if (weather) {
       document.title = `${weather.temperature}°C ${weather.description} — Still`;
@@ -231,11 +254,11 @@ export default function Home() {
       setZenDimmed(false);
       return;
     }
-    let timeout = setTimeout(() => setZenDimmed(true), 10000);
+    let timeout = setTimeout(() => setZenDimmed(true), 8000);
     const reset = () => {
       setZenDimmed(false);
       clearTimeout(timeout);
-      timeout = setTimeout(() => setZenDimmed(true), 10000);
+      timeout = setTimeout(() => setZenDimmed(true), 8000);
     };
     window.addEventListener("pointermove", reset);
     window.addEventListener("keydown", reset);
@@ -266,8 +289,8 @@ export default function Home() {
     }
   }, [isPlaying, audioStatus]);
 
-  const startPreset = useCallback((min: number) => {
-    setFocusPhase("focus");
+  const startPreset = useCallback((min: number, kind: "focus" | "break" | "longBreak" = "focus") => {
+    setFocusPhase(kind);
     setDuration(min * 60);
     setRemaining(min * 60);
     setTimerRunning(true);
@@ -313,14 +336,8 @@ export default function Home() {
   }, [timerMode, toggleTimerRunning, toggleRadio, toggleFullscreen]);
 
   /* ───────── computed ───────── */
-  const h = now.getHours() + now.getMinutes() / 60;
-  let localPhase: SkyPhase = "day";
-  if (h >= 5 && h < 7) localPhase = "dawn";
-  else if (h >= 17 && h < 20) localPhase = "golden";
-  else if (h >= 20 || h < 5) localPhase = "night";
-
-  const phase = skyOverride === "auto" ? (solarPhase ?? localPhase) : skyOverride;
-  const sunProg = solarProgress ?? Math.max(0, Math.min(100, ((h - 6) / 14) * 100));
+  const celestial = getCelestialState(now, coords.lat, coords.lon);
+  const phase = skyOverride === "auto" ? celestial.phase : skyOverride;
   const moonData = getMoonPhase(now);
   const timeLabel = mounted ? formatTime(now, use12h) : "--:--";
   const dateLabel = mounted ? formatDateLabel(now) : "";
@@ -329,15 +346,29 @@ export default function Home() {
   return (
     <main
       className="relative w-screen h-dvh overflow-hidden isolate transition-[background] duration-[2000ms] ease-in-out"
-      style={{ ...SKY_GRADIENTS[phase], "--sun-progress": `${sunProg}%` } as React.CSSProperties}
+      style={SKY_GRADIENTS[phase]}
     >
+      {/* Initial loader while resolving clock & sky coordinates */}
+      {!sceneReady && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-[#0a0f1d] transition-opacity duration-500">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
+            <span className="text-[11px] uppercase tracking-[0.24em] text-white/50">
+              Reading sky
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Background layers */}
-      <StarField phase={phase} stars={STARS} dimStars={DIM_STARS} />
-      <ShootingStars phase={phase} />
-      <Clouds cloudCover={cloudCover} phase={phase} />
-      <Celestial phase={phase} sunProgress={sunProg} moonData={moonData} />
-      <WeatherParticles weather={weather} phase={phase} />
-      <Character phase={phase} />
+      <div className={`contents transition-opacity duration-700 ${sceneReady ? "opacity-100" : "opacity-0"}`}>
+        <StarField phase={phase} stars={STARS} dimStars={DIM_STARS} />
+        <ShootingStars phase={phase} />
+        <Clouds cloudCover={cloudCover} phase={phase} />
+        <Celestial phase={phase} sun={celestial.sun} moon={celestial.moon} moonData={moonData} animatePosition={animateCelestial} />
+        <WeatherParticles weather={weather} phase={phase} rainLevel={rainLevel} />
+        <Horizon phase={phase} />
+      </div>
 
       {/* UI */}
       <TopBar
@@ -359,6 +390,7 @@ export default function Home() {
           now={now}
           phase={phase}
           minimized={timerMode}
+          zenDimmed={zenDimmed}
           onStartTimer={() => setTimerMode(true)}
         />
         <FocusTimer
@@ -371,8 +403,10 @@ export default function Home() {
           customOpen={customOpen}
           customMinutes={customMinutes}
           phase={phase}
+          zenDimmed={zenDimmed}
           onStartPreset={startPreset}
           onToggleRunning={toggleTimerRunning}
+          onSkipPhase={advancePomodoro}
           onClose={closeTimer}
           onSetCustomOpen={setCustomOpen}
           onSetCustomMinutes={setCustomMinutes}

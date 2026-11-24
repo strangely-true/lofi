@@ -29,9 +29,13 @@ interface SideDrawerProps {
 
 const SKY_OPTIONS: Array<{ value: "auto" | SkyPhase; label: string }> = [
   { value: "auto", label: "Auto" },
+  { value: "twilight", label: "Pre-dawn" },
   { value: "dawn", label: "Dawn" },
+  { value: "morning", label: "Morning" },
   { value: "day", label: "Day" },
+  { value: "afternoon", label: "Afternoon" },
   { value: "golden", label: "Golden" },
+  { value: "dusk", label: "Dusk" },
   { value: "night", label: "Night" },
 ];
 
@@ -58,7 +62,7 @@ export function SideDrawer({
   onSetWindLevel,
   onSetFireLevel,
 }: SideDrawerProps) {
-  const appearance = phase === "night" ? "dark" : "light";
+  const appearance = phase === "night" || phase === "twilight" || phase === "dusk" ? "dark" : "light";
 
   return (
     <>
@@ -160,7 +164,7 @@ export function SideDrawer({
 
             {/* Sky Phase */}
             <Section title="Atmosphere">
-              <div className="grid grid-cols-5 gap-1">
+              <div className="grid grid-cols-3 gap-1">
                 {SKY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
@@ -181,13 +185,26 @@ export function SideDrawer({
             {/* Display & Clock */}
             <Section title="Display">
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  className="flex items-center justify-center gap-1.5 h-9 px-3 border border-white/15 rounded-xl bg-white/[0.08] text-white/85 text-xs font-[450] cursor-pointer hover:bg-white/15 hover:text-white transition-colors"
-                  type="button"
-                  onClick={() => onSetUse12h(!use12h)}
-                >
-                  <span>{use12h ? "12-Hour" : "24-Hour"}</span>
-                </button>
+                <div className="grid grid-cols-2 h-9 p-0.5 border border-white/15 rounded-xl bg-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={() => onSetUse12h(false)}
+                    className={`rounded-[9px] text-[11px] font-medium transition-colors ${
+                      !use12h ? "bg-white/22 text-white" : "text-white/55 hover:text-white"
+                    }`}
+                  >
+                    24H
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSetUse12h(true)}
+                    className={`rounded-[9px] text-[11px] font-medium transition-colors ${
+                      use12h ? "bg-white/22 text-white" : "text-white/55 hover:text-white"
+                    }`}
+                  >
+                    12H
+                  </button>
+                </div>
                 <button
                   className="flex items-center justify-center gap-1.5 h-9 px-3 border border-white/15 rounded-xl bg-white/[0.08] text-white/85 text-xs font-[450] cursor-pointer hover:bg-white/15 hover:text-white transition-colors"
                   type="button"
@@ -216,7 +233,7 @@ export function SideDrawer({
 
             {/* Credits */}
             <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
-              <p className="m-0 text-white/90 font-serif text-base font-normal tracking-[0.01em]">
+              <p className="m-0 text-white/90 font-sans text-sm font-medium tracking-[0.01em]">
                 Sabittwa
               </p>
               <a

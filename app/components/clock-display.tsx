@@ -9,6 +9,7 @@ interface ClockDisplayProps {
   now: Date;
   phase: SkyPhase;
   minimized: boolean;
+  zenDimmed?: boolean;
   onStartTimer: () => void;
 }
 
@@ -19,9 +20,12 @@ export function ClockDisplay({
   now,
   phase,
   minimized,
+  zenDimmed = false,
   onStartTimer,
 }: ClockDisplayProps) {
-  const appearance = phase === "night" ? "dark" : "light";
+  const appearance = phase === "night" || phase === "twilight" || phase === "dusk" ? "dark" : "light";
+
+  const [mainTime, period] = timeLabel.split(" ");
 
   return (
     <div
@@ -32,16 +36,21 @@ export function ClockDisplay({
       }`}
     >
       <time
-        className="text-white/97 font-serif text-[clamp(80px,11vw,160px)] font-light leading-[0.85] -tracking-[0.04em] tabular-nums shadow-[0_8px_40px_rgba(10,14,26,0.1)]"
+        className="flex items-baseline gap-2.5 text-white/95 font-sans text-[clamp(74px,10.5vw,148px)] font-light leading-[0.9] -tracking-[0.04em] tabular-nums drop-shadow-[0_6px_28px_rgba(10,14,26,0.14)]"
         dateTime={now.toISOString()}
         suppressHydrationWarning
       >
-        {timeLabel}
+        <span>{mainTime}</span>
+        {period && (
+          <span className="text-[0.22em] font-medium tracking-[0.14em] text-white/65 uppercase">
+            {period}
+          </span>
+        )}
       </time>
 
       <div
         className={`flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          minimized ? "opacity-0 -translate-y-3 scale-95 pointer-events-none" : "opacity-100 translate-y-0 scale-100"
+          minimized || zenDimmed ? "opacity-0 -translate-y-3 scale-95 pointer-events-none" : "opacity-100 translate-y-0 scale-100"
         }`}
       >
         <p

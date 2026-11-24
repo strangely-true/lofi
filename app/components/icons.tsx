@@ -1,6 +1,4 @@
 import {
-  Play,
-  Pause,
   Volume2,
   Volume1,
   VolumeX,
@@ -17,6 +15,7 @@ import {
   Wind,
   Flame,
   Loader2,
+  SkipForward,
 } from "lucide-react";
 
 export type IconName =
@@ -37,11 +36,10 @@ export type IconName =
   | "rain"
   | "wind"
   | "fire"
-  | "loader";
+  | "loader"
+  | "skip";
 
 const ICONS = {
-  play: Play,
-  pause: Pause,
   volume: Volume2,
   "volume-low": Volume1,
   "volume-mute": VolumeX,
@@ -58,6 +56,7 @@ const ICONS = {
   wind: Wind,
   fire: Flame,
   loader: Loader2,
+  skip: SkipForward,
 } as const;
 
 export function Icon({
@@ -69,14 +68,41 @@ export function Icon({
   size?: number;
   className?: string;
 }) {
+  if (name === "play") {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={`translate-x-[1px] ${className ?? ""}`.trim()}
+        aria-hidden="true"
+      >
+        <path d="M7.5 5.25a1.25 1.25 0 0 1 1.9-.1l9.5 6a1.25 1.25 0 0 1 0 2.1l-9.5 6A1.25 1.25 0 0 1 7.5 18.2V5.25Z" />
+      </svg>
+    );
+  }
+  if (name === "pause") {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+        aria-hidden="true"
+      >
+        <rect x="6.5" y="5" width="3.75" height="14" rx="1.6" />
+        <rect x="13.75" y="5" width="3.75" height="14" rx="1.6" />
+      </svg>
+    );
+  }
   const Component = ICONS[name];
-  const filled = name === "play" || name === "pause";
   return (
     <Component
       size={size}
-      strokeWidth={filled ? 2 : 1.75}
-      fill={filled ? "currentColor" : "none"}
-      className={name === "play" ? `translate-x-[1px] ${className ?? ""}`.trim() : className}
+      strokeWidth={1.75}
+      className={className}
       aria-hidden="true"
     />
   );

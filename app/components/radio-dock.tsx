@@ -23,7 +23,7 @@ export function RadioDock({
   onToggleRadio,
   onSetVolume,
 }: RadioDockProps) {
-  const appearance = phase === "night" ? "dark" : "light";
+  const appearance = phase === "night" || phase === "twilight" || phase === "dusk" ? "dark" : "light";
   const volumeIcon =
     volume === 0 ? "volume-mute" : volume < 45 ? "volume-low" : "volume";
 
@@ -40,7 +40,7 @@ export function RadioDock({
         className={`absolute z-10 left-1/2 bottom-7 -translate-x-1/2 rounded-full text-white
           w-[min(460px,calc(100vw-32px))] h-[66px] flex items-center gap-3 px-2.5
           max-md:bottom-4 max-md:h-[60px] max-md:gap-2.5 max-md:px-2 animate-rise-in
-          transition-opacity duration-700 ${zenDimmed ? "opacity-15 hover:opacity-100" : "opacity-100"}`}
+          transition-opacity duration-700 ${zenDimmed ? "opacity-0 pointer-events-none" : "opacity-100"}`}
       >
         {/* Play / Pause / Buffering */}
         <button

@@ -1,4 +1,12 @@
-export type SkyPhase = "dawn" | "day" | "golden" | "night";
+export type SkyPhase =
+  | "night"
+  | "twilight"
+  | "dawn"
+  | "morning"
+  | "day"
+  | "afternoon"
+  | "golden"
+  | "dusk";
 
 export interface WeatherInfo {
   temperature: number;
@@ -15,6 +23,14 @@ export interface RadioMeta {
 
 export interface MoonData {
   phase: number;
+  fraction: number;
   name: string;
   emoji: string;
+}
+
+export interface CelestialBodyPos {
+  x: number; // % from left (East = right, West = left)
+  y: number; // % from top (North = up)
+  altitudeDeg: number;
+  visible: boolean;
 }

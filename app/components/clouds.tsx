@@ -2,7 +2,7 @@ import type { SkyPhase } from "../lib/types";
 import type { CSSProperties } from "react";
 
 export function Clouds({ cloudCover, phase }: { cloudCover: number; phase: SkyPhase }) {
-  const isNight = phase === "night";
+  const isNight = phase === "night" || phase === "twilight" || phase === "dusk";
   const cloudOpacity = cloudCover > 65 ? 0.72 : 0.35;
   const cloudBase = isNight ? "opacity-[0.06] bg-blue-300/20" : "bg-white/[0.28]";
 

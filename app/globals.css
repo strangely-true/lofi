@@ -5,8 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-cormorant), Georgia, serif;
+  --font-sans: "Object Sans", var(--font-object-sans), system-ui, -apple-system, sans-serif;
 
   --animate-twinkle: twinkle 4s ease-in-out infinite alternate;
   --animate-twinkle-dim: twinkle-dim 4s ease-in-out infinite alternate;

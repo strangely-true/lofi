@@ -3,8 +3,9 @@ import type { SkyPhase } from "../lib/types";
 import type { Star } from "../lib/utils";
 
 export function StarField({ phase, stars, dimStars }: { phase: SkyPhase; stars: Star[]; dimStars: Star[] }) {
+  const starOpacity = phase === "night" ? "opacity-100" : phase === "twilight" || phase === "dusk" ? "opacity-45" : "opacity-0";
   return (
-    <div className={`absolute inset-0 -z-20 pointer-events-none transition-opacity duration-[2200ms] ease-in-out ${phase === "night" ? "opacity-100" : "opacity-0"}`} aria-hidden="true">
+    <div className={`absolute inset-0 -z-20 pointer-events-none transition-opacity duration-[2200ms] ease-in-out ${starOpacity}`} aria-hidden="true">
       {stars.map((s, i) => (
         <div key={i} className="absolute rounded-full bg-white animate-twinkle"
           style={{ left: `${s.x}%`, top: `${s.y}%`, width: `${s.size}px`, height: `${s.size}px`, opacity: s.opacity, animationDelay: `${s.delay}s` }} />

@@ -1,118 +1,83 @@
-/* ── Procedural Web Audio engine: chime + ambient soundscapes ── */
+import * as Tone from "tone";
 
-let ctx: AudioContext | null = null;
+/* ── Tone.js audio engine: polyphonic chimes + ambient soundscapes ── */
 
-function getAudioContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  if (!ctx) {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return null;
-    ctx = new AudioCtx();
+let chimeSynth: Tone.PolySynth | null = null;
+let chimeReverb: Tone.Reverb | null = null;
+
+async function ensureToneStarted(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (Tone.getContext().state !== "running") {
+    try {
+      await Tone.start();
+    } catch {
+      return false;
+    }
   }
-  if (ctx.state === "suspended") {
-    ctx.resume().catch(() => {});
-  }
-  return ctx;
+  return true;
 }
 
-/** Gentle singing-bowl chime for timer completion. */
-export function playTimerChime(): void {
-  const ac = getAudioContext();
-  if (!ac) return;
-  const now = ac.currentTime;
-  const freqs = [528, 1056, 1584];
-  freqs.forEach((freq, i) => {
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(freq, now);
-    const peak = 0.14 / (i + 1);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(peak, now + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.8 - i * 0.4);
-    osc.connect(gain).connect(ac.destination);
-    osc.start(now);
-    osc.stop(now + 3);
-  });
+/** Warm polyphonic singing-bowl / bell chime using Tone.js. */
+export async function playTimerChime(): Promise<void> {
+  const ok = await ensureToneStarted();
+  if (!ok) return;
+
+  if (!chimeReverb) {
+    chimeReverb = new Tone.Reverb({ decay: 3.5, wet: 0.55 }).toDestination();
+  }
+  if (!chimeSynth) {
+    chimeSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "sine" },
+      envelope: { attack: 0.03, decay: 1.8, sustain: 0.05, release: 2.4 },
+      volume: -10,
+    }).connect(chimeReverb);
+  }
+
+  const now = Tone.now();
+  chimeSynth.triggerAttackRelease("C5", "2n", now);
+  chimeSynth.triggerAttackRelease("E5", "2n", now + 0.16);
+  chimeSynth.triggerAttackRelease("G5", "2n", now + 0.32);
+  chimeSynth.triggerAttackRelease("D6", "1n", now + 0.48);
 }
 
 type AmbientChannel = "rain" | "wind" | "fire";
 
 interface ChannelNodes {
-  gain: GainNode;
-  source: AudioBufferSourceNode;
+  noise: Tone.Noise;
+  filter: Tone.Filter;
+  gain: Tone.Gain;
 }
 
 const channels: Partial<Record<AmbientChannel, ChannelNodes>> = {};
 
-function createNoiseBuffer(ac: AudioContext, type: "pink" | "brown"): AudioBuffer {
-  const length = ac.sampleRate * 4;
-  const buffer = ac.createBuffer(1, length, ac.sampleRate);
-  const data = buffer.getChannelData(0);
-  if (type === "brown") {
-    let last = 0;
-    for (let i = 0; i < length; i++) {
-      const white = Math.random() * 2 - 1;
-      last = (last + 0.02 * white) / 1.02;
-      data[i] = last * 3.2;
-    }
-  } else {
-    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-    for (let i = 0; i < length; i++) {
-      const white = Math.random() * 2 - 1;
-      b0 = 0.99886 * b0 + white * 0.0555179;
-      b1 = 0.99332 * b1 + white * 0.0750759;
-      b2 = 0.96900 * b2 + white * 0.1538520;
-      b3 = 0.86650 * b3 + white * 0.3104856;
-      b4 = 0.55000 * b4 + white * 0.5329522;
-      b5 = -0.7616 * b5 - white * 0.0168980;
-      data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.04;
-      b6 = white * 0.115926;
-    }
-  }
-  return buffer;
-}
-
-function ensureChannel(name: AmbientChannel): ChannelNodes | null {
+function ensureChannel(name: AmbientChannel): ChannelNodes {
   const existing = channels[name];
   if (existing) return existing;
-  const ac = getAudioContext();
-  if (!ac) return null;
 
-  const source = ac.createBufferSource();
-  source.buffer = createNoiseBuffer(ac, name === "rain" ? "pink" : "brown");
-  source.loop = true;
+  const noise = new Tone.Noise(name === "rain" ? "pink" : "brown");
+  const filter = new Tone.Filter({
+    type: name === "wind" ? "bandpass" : "lowpass",
+    frequency: name === "rain" ? 1850 : name === "wind" ? 360 : 280,
+    Q: name === "wind" ? 1.5 : 0.7,
+  });
+  const gain = new Tone.Gain(0).toDestination();
 
-  const filter = ac.createBiquadFilter();
-  if (name === "rain") {
-    filter.type = "lowpass";
-    filter.frequency.value = 1800;
-  } else if (name === "wind") {
-    filter.type = "bandpass";
-    filter.frequency.value = 340;
-    filter.Q.value = 1.4;
-  } else {
-    filter.type = "lowpass";
-    filter.frequency.value = 260;
-  }
+  noise.connect(filter);
+  filter.connect(gain);
+  noise.start();
 
-  const gain = ac.createGain();
-  gain.gain.value = 0;
-
-  source.connect(filter).connect(gain).connect(ac.destination);
-  source.start();
-
-  const node = { gain, source };
+  const node = { noise, filter, gain };
   channels[name] = node;
   return node;
 }
 
 /** Update an ambient channel's volume (0..100). */
-export function setAmbientLevel(name: AmbientChannel, level: number): void {
+export async function setAmbientLevel(name: AmbientChannel, level: number): Promise<void> {
   const clamped = Math.max(0, Math.min(100, level));
   if (clamped === 0 && !channels[name]) return;
+  const ok = await ensureToneStarted();
+  if (!ok) return;
   const node = ensureChannel(name);
-  if (!node || !ctx) return;
-  const target = (clamped / 100) * (name === "fire" ? 0.45 : name === "wind" ? 0.35 : 0.28);
-  node.gain.gain.setTargetAtTime(target, ctx.currentTime, 0.15);
+  const target = (clamped / 100) * (name === "fire" ? 0.42 : name === "wind" ? 0.32 : 0.26);
+  node.gain.gain.rampTo(target, 0.2);
 }

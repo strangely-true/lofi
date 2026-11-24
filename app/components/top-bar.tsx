@@ -13,16 +13,23 @@ interface TopBarProps {
   onToggleDrawer: () => void;
 }
 
+const PHASE_LABEL: Record<SkyPhase, string> = {
+  night: "Night sky",
+  twilight: "Pre-dawn",
+  dawn: "Sunrise",
+  morning: "Morning light",
+  day: "Soft daylight",
+  afternoon: "Afternoon",
+  golden: "Golden hour",
+  dusk: "Dusk",
+};
+
 export function TopBar({ locationName, weather, phase, moonData, isFullscreen, zenDimmed = false, onToggleFullscreen, onToggleDrawer }: TopBarProps) {
-  const appearance = phase === "night" ? "dark" : "light";
-  const statusText = phase === "night"
-    ? `${moonData.name} ${moonData.emoji}`
-    : phase === "dawn" ? "Morning light"
-    : phase === "golden" ? "Golden hour"
-    : "Soft daylight";
+  const appearance = phase === "night" || phase === "twilight" || phase === "dusk" ? "dark" : "light";
+  const statusText = phase === "night" ? `${moonData.name} ${moonData.emoji}` : PHASE_LABEL[phase];
 
   return (
-    <header className={`absolute z-5 top-6 left-7 right-7 flex items-center justify-between transition-opacity duration-700 max-md:top-3.5 max-md:left-3.5 max-md:right-3.5 max-md:flex-wrap max-md:gap-2 ${zenDimmed ? "opacity-15 hover:opacity-100" : "opacity-100"}`}>
+    <header className={`absolute z-5 top-6 left-7 right-7 flex items-center justify-between transition-opacity duration-700 max-md:top-3.5 max-md:left-3.5 max-md:right-3.5 max-md:flex-wrap max-md:gap-2 ${zenDimmed ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
       {/* Location */}
       <LiquidGlass asChild interactive material="clear" appearance={appearance} refraction={6} bezel={14} blur={2}>
         <button className="h-10 rounded-full flex items-center gap-2 px-4 text-white/90 text-xs font-[450] tracking-wide transition" type="button">

@@ -28,20 +28,22 @@ export function RadioDock({
     volume === 0 ? "volume-mute" : volume < 45 ? "volume-low" : "volume";
 
   return (
-    <LiquidGlass
-      asChild
-      material="clear"
-      appearance={appearance}
-      refraction={10}
-      bezel={18}
-      blur={3}
+    <div
+      className={`absolute z-10 left-1/2 bottom-7 -translate-x-1/2 max-md:bottom-4 transition-opacity duration-700 ${
+        zenDimmed ? "opacity-0 pointer-events-none" : "opacity-100"
+      }`}
     >
-      <aside
-        className={`absolute z-10 left-1/2 bottom-7 -translate-x-1/2 rounded-full text-white
-          w-[min(460px,calc(100vw-32px))] h-[66px] flex items-center gap-3 px-2.5
-          max-md:bottom-4 max-md:h-[60px] max-md:gap-2.5 max-md:px-2 animate-rise-in
-          transition-opacity duration-700 ${zenDimmed ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+      <LiquidGlass
+        asChild
+        material="clear"
+        appearance={appearance}
+        refraction={10}
+        bezel={18}
+        blur={3}
       >
+        <aside
+          className="rounded-full text-white w-[min(460px,calc(100vw-32px))] h-[66px] flex items-center gap-3 px-2.5 max-md:h-[60px] max-md:gap-2.5 max-md:px-2 animate-rise-in"
+        >
         {/* Play / Pause / Buffering */}
         <button
           className={`relative shrink-0 w-11 h-11 rounded-full grid place-items-center bg-white/95 text-[#18202c] shadow-[0_6px_20px_rgba(10,14,26,0.2)] border-0 transition-all duration-200 hover:scale-105 hover:bg-white active:scale-95 max-md:w-10 max-md:h-10 ${
@@ -115,5 +117,6 @@ export function RadioDock({
         </div>
       </aside>
     </LiquidGlass>
+    </div>
   );
 }

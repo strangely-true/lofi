@@ -13,6 +13,7 @@ interface SideDrawerProps {
   skyOverride: "auto" | SkyPhase;
   use12h: boolean;
   zenAutoHide: boolean;
+  zenHideMusic: boolean;
   waveMode: HorizonWaveMode;
   rainLevel: number;
   windLevel: number;
@@ -24,6 +25,7 @@ interface SideDrawerProps {
   onSetSkyOverride: (v: "auto" | SkyPhase) => void;
   onSetUse12h: (v: boolean) => void;
   onSetZenAutoHide: (v: boolean) => void;
+  onSetZenHideMusic: (v: boolean) => void;
   onSetWaveMode: (v: HorizonWaveMode) => void;
   onSetRainLevel: (v: number) => void;
   onSetWindLevel: (v: number) => void;
@@ -51,6 +53,7 @@ export function SideDrawer({
   skyOverride,
   use12h,
   zenAutoHide,
+  zenHideMusic,
   waveMode,
   rainLevel,
   windLevel,
@@ -62,6 +65,7 @@ export function SideDrawer({
   onSetSkyOverride,
   onSetUse12h,
   onSetZenAutoHide,
+  onSetZenHideMusic,
   onSetWaveMode,
   onSetRainLevel,
   onSetWindLevel,
@@ -96,11 +100,11 @@ export function SideDrawer({
       >
         <LiquidGlass
           material="regular"
-          appearance={appearance}
+          appearance="dark"
           refraction={14}
           bezel={22}
           blur={4}
-          className="rounded-[24px] text-white"
+          className="rounded-[24px] text-white bg-[#0b1120]/55"
         >
           <div className="max-h-[76vh] max-md:max-h-[70vh] overflow-y-auto p-5 flex flex-col gap-5 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.18)_transparent]">
             {/* Header */}
@@ -229,6 +233,18 @@ export function SideDrawer({
                   {zenAutoHide ? "On" : "Off"}
                 </span>
               </button>
+              {zenAutoHide && (
+                <button
+                  type="button"
+                  onClick={() => onSetZenHideMusic(!zenHideMusic)}
+                  className="flex items-center justify-between h-9 px-3 border border-white/12 rounded-xl bg-white/[0.06] text-xs text-white/80 hover:bg-white/12 transition-colors"
+                >
+                  <span>Hide player in Zen</span>
+                  <span className={`text-[10px] uppercase tracking-wider font-semibold ${zenHideMusic ? "text-white" : "text-white/40"}`}>
+                    {zenHideMusic ? "On" : "Off"}
+                  </span>
+                </button>
+              )}
               <div className="flex flex-col gap-1.5 p-2.5 border border-white/12 rounded-xl bg-white/[0.06] text-xs text-white/80">
                 <span>Horizon wave</span>
                 <div className="grid grid-cols-3 h-7 p-0.5 rounded-lg bg-white/[0.06] border border-white/10">

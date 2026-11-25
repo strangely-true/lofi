@@ -5,7 +5,7 @@ import type { SkyPhase } from "../lib/types";
 
 export type HorizonWaveMode = "calm" | "smooth" | "reactive";
 
-const BASE_Y = 140;
+const BASE_Y = 132;
 
 // Smooth mode: 10 points, balanced spectral tilt
 const SMOOTH_XS = [0, 160, 320, 480, 640, 800, 960, 1120, 1280, 1440];

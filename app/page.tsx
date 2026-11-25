@@ -72,6 +72,7 @@ export default function Home() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [use12h, setUse12h] = useState(false);
   const [zenAutoHide, setZenAutoHide] = useState(false);
+  const [zenHideMusic, setZenHideMusic] = useState(true);
   const [zenDimmed, setZenDimmed] = useState(false);
   const [waveMode, setWaveMode] = useState<HorizonWaveMode>("calm");
 
@@ -87,6 +88,7 @@ export default function Home() {
         if (typeof p.radioUrl === "string" && p.radioUrl) setRadioUrl(p.radioUrl);
         if (typeof p.use12h === "boolean") setUse12h(p.use12h);
         if (typeof p.zenAutoHide === "boolean") setZenAutoHide(p.zenAutoHide);
+        if (typeof p.zenHideMusic === "boolean") setZenHideMusic(p.zenHideMusic);
         if (p.waveMode === "calm" || p.waveMode === "smooth" || p.waveMode === "reactive") setWaveMode(p.waveMode);
         if (p.skyOverride) setSkyOverride(p.skyOverride);
         if (typeof p.rainLevel === "number") setRainLevel(p.rainLevel);
@@ -102,10 +104,10 @@ export default function Home() {
     try {
       localStorage.setItem(
         PREFS_KEY,
-        JSON.stringify({ volume, radioUrl, use12h, zenAutoHide, waveMode, skyOverride, rainLevel, windLevel, fireLevel })
+        JSON.stringify({ volume, radioUrl, use12h, zenAutoHide, zenHideMusic, waveMode, skyOverride, rainLevel, windLevel, fireLevel })
       );
     } catch { /* ignore */ }
-  }, [mounted, volume, radioUrl, use12h, zenAutoHide, waveMode, skyOverride, rainLevel, windLevel, fireLevel]);
+  }, [mounted, volume, radioUrl, use12h, zenAutoHide, zenHideMusic, waveMode, skyOverride, rainLevel, windLevel, fireLevel]);
 
   // sync ambient channels
   useEffect(() => { setAmbientLevel("rain", rainLevel); }, [rainLevel]);
@@ -462,7 +464,7 @@ export default function Home() {
         radioMeta={radioMeta}
         volume={volume}
         phase={phase}
-        zenDimmed={zenDimmed}
+        zenDimmed={zenDimmed && zenHideMusic}
         onToggleRadio={toggleRadio}
         onSetVolume={setVolume}
       />
@@ -476,6 +478,7 @@ export default function Home() {
         skyOverride={skyOverride}
         use12h={use12h}
         zenAutoHide={zenAutoHide}
+        zenHideMusic={zenHideMusic}
         waveMode={waveMode}
         rainLevel={rainLevel}
         windLevel={windLevel}
@@ -487,6 +490,7 @@ export default function Home() {
         onSetSkyOverride={setSkyOverride}
         onSetUse12h={setUse12h}
         onSetZenAutoHide={setZenAutoHide}
+        onSetZenHideMusic={setZenHideMusic}
         onSetWaveMode={setWaveMode}
         onSetRainLevel={setRainLevel}
         onSetWindLevel={setWindLevel}

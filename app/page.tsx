@@ -87,7 +87,7 @@ export default function Home() {
         if (typeof p.radioUrl === "string" && p.radioUrl) setRadioUrl(p.radioUrl);
         if (typeof p.use12h === "boolean") setUse12h(p.use12h);
         if (typeof p.zenAutoHide === "boolean") setZenAutoHide(p.zenAutoHide);
-        if (p.waveMode === "calm" || p.waveMode === "reactive") setWaveMode(p.waveMode);
+        if (p.waveMode === "calm" || p.waveMode === "smooth" || p.waveMode === "reactive") setWaveMode(p.waveMode);
         if (p.skyOverride) setSkyOverride(p.skyOverride);
         if (typeof p.rainLevel === "number") setRainLevel(p.rainLevel);
         if (typeof p.windLevel === "number") setWindLevel(p.windLevel);
@@ -288,8 +288,8 @@ export default function Home() {
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
       const node = ctx.createAnalyser();
-      node.fftSize = 128;
-      node.smoothingTimeConstant = 0.62;
+      node.fftSize = 512;
+      node.smoothingTimeConstant = 0.35;
       const src = ctx.createMediaElementSource(a);
       src.connect(node);
       node.connect(ctx.destination);

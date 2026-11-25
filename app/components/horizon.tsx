@@ -3,23 +3,42 @@
 import { useEffect, useRef } from "react";
 import type { SkyPhase } from "../lib/types";
 
-export type HorizonWaveMode = "calm" | "reactive";
+export type HorizonWaveMode = "calm" | "smooth" | "reactive";
 
-// 10 evenly spaced points along 0..1440; resting state is a flat line at y = 140
-const XS = [0, 160, 320, 480, 640, 800, 960, 1120, 1280, 1440];
 const BASE_Y = 140;
 
-const BIN_RANGES: [number, number][] = [
+// Smooth mode: 10 points, balanced spectral tilt
+const SMOOTH_XS = [0, 160, 320, 480, 640, 800, 960, 1120, 1280, 1440];
+const SMOOTH_BINS: [number, number][] = [
+  [1, 6],
+  [6, 12],
+  [12, 20],
+  [20, 30],
+  [30, 44],
+  [44, 62],
+  [62, 84],
+  [84, 110],
+  [110, 140],
+  [140, 180],
+];
+
+// Reactive mode: 14 points, crisp bass/kick & fast piano transient response
+const REACTIVE_XS = [0, 111, 222, 332, 443, 554, 665, 775, 886, 997, 1108, 1218, 1329, 1440];
+const REACTIVE_BINS: [number, number][] = [
+  [0, 2],
   [1, 3],
   [3, 5],
-  [5, 8],
-  [8, 12],
-  [12, 17],
-  [17, 23],
-  [23, 30],
-  [30, 38],
-  [38, 46],
-  [46, 56],
+  [5, 7],
+  [7, 10],
+  [10, 14],
+  [14, 19],
+  [19, 26],
+  [26, 35],
+  [35, 46],
+  [46, 60],
+  [60, 78],
+  [78, 98],
+  [98, 124],
 ];
 
 /** Convert control points into a smooth C1-continuous SVG cubic bezier path closed at bottom. */
@@ -50,7 +69,7 @@ const CALM_BACK_PATH =
   "M0,125 C240,85 460,145 740,108 C1020,72 1240,130 1440,96 L1440,200 L0,200 Z";
 const CALM_FRONT_PATH =
   "M0,152 C320,124 580,174 920,138 C1160,114 1320,148 1440,136 L1440,200 L0,200 Z";
-const REACTIVE_REST_PATH = `M0,${BASE_Y} L1440,${BASE_Y} L1440,200 L0,200 Z`;
+const FLAT_REST_PATH = `M0,${BASE_Y} L1440,${BASE_Y} L1440,200 L0,200 Z`;
 
 export function Horizon({
   phase,
@@ -68,7 +87,7 @@ export function Horizon({
   const backRef = useRef<SVGPathElement>(null);
   const frontRef = useRef<SVGPathElement>(null);
   const ampRef = useRef(0);
-  const smoothedRef = useRef<number[]>(new Array(XS.length).fill(0));
+  const smoothedRef = useRef<number[]>(new Array(REACTIVE_XS.length).fill(0));
 
   useEffect(() => {
     let raf = 0;
@@ -119,24 +138,27 @@ export function Horizon({
       return () => cancelAnimationFrame(raf);
     }
 
-    // Reactive mode: subtle, balanced FFT wave on the upper ridge only
+    // Spectrum modes ("smooth" or "reactive") on the upper ridge only
     if (frontRef.current) frontRef.current.setAttribute("d", CALM_FRONT_PATH);
+    const isReactive = waveMode === "reactive";
+    const xs = isReactive ? REACTIVE_XS : SMOOTH_XS;
+    const binRanges = isReactive ? REACTIVE_BINS : SMOOTH_BINS;
     const bins = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
 
-    const tickReactive = () => {
+    const tickSpectrum = () => {
       let anyMotion = false;
-      const ys = new Array<number>(XS.length);
+      const ys = new Array<number>(xs.length);
 
       if (analyser && bins && isPlaying) {
         analyser.getByteFrequencyData(bins);
       }
 
-      for (let i = 0; i < XS.length; i++) {
+      for (let i = 0; i < xs.length; i++) {
         let target = 0;
         if (bins && isPlaying) {
-          const [start, end] = BIN_RANGES[i];
-          let sum = 0;
+          const [start, end] = binRanges[i];
           let peak = 0;
+          let sum = 0;
           const clampedEnd = Math.min(bins.length, end);
           const count = Math.max(1, clampedEnd - start);
           for (let b = start; b < clampedEnd; b++) {
@@ -146,39 +168,45 @@ export function Horizon({
           }
           const avg = sum / (count * 255);
           const pk = peak / 255;
-          const raw = avg * 0.55 + pk * 0.45;
-          // Perceptual spectral tilt: tame sub-bass dominance on the left while lifting mids & treble
-          const weight = i < 2 ? 0.55 : i < 4 ? 0.78 : i < 7 ? 1.15 : 1.55;
-          target = Math.min(1, Math.pow(raw * weight, 1.1));
+
+          if (isReactive) {
+            const raw = avg * 0.3 + pk * 0.7;
+            const weight = i < 2 ? 0.68 : i < 5 ? 1.0 : i < 9 ? 1.35 : 1.75;
+            const gated = Math.max(0, raw * weight - 0.14) / 0.86;
+            target = Math.min(1, Math.pow(gated, 1.35));
+          } else {
+            const raw = avg * 0.55 + pk * 0.45;
+            const weight = i < 2 ? 0.55 : i < 4 ? 0.78 : i < 7 ? 1.15 : 1.55;
+            target = Math.min(1, Math.pow(raw * weight, 1.1));
+          }
         }
 
-        // Responsive attack on beats, slow graceful decay on pause or between tracks
         const prev = smoothedRef.current[i];
-        const lerp = target > prev ? 0.36 : 0.045;
-        const next = prev + (target - prev) * lerp;
+        const attack = isReactive ? 0.85 : 0.36;
+        const release = isReactive ? 0.07 : 0.045;
+        const next = prev + (target - prev) * (target > prev ? attack : release);
         smoothedRef.current[i] = next;
 
         if (next > 0.002) anyMotion = true;
 
-        // Balanced expressive height (up to 46px above baseline)
-        ys[i] = BASE_Y - next * 46;
+        ys[i] = BASE_Y - next * (isReactive ? 52 : 46);
       }
 
       if (backRef.current) {
-        backRef.current.setAttribute("d", buildWavePath(XS, ys));
+        backRef.current.setAttribute("d", buildWavePath(xs, ys));
       }
 
       if (isPlaying || anyMotion) {
-        raf = requestAnimationFrame(tickReactive);
+        raf = requestAnimationFrame(tickSpectrum);
       } else if (backRef.current) {
-        backRef.current.setAttribute("d", REACTIVE_REST_PATH);
+        backRef.current.setAttribute("d", FLAT_REST_PATH);
       }
     };
 
     if (isPlaying || smoothedRef.current.some((v) => v > 0.002)) {
-      raf = requestAnimationFrame(tickReactive);
+      raf = requestAnimationFrame(tickSpectrum);
     } else if (backRef.current) {
-      backRef.current.setAttribute("d", REACTIVE_REST_PATH);
+      backRef.current.setAttribute("d", FLAT_REST_PATH);
     }
 
     return () => cancelAnimationFrame(raf);
@@ -211,7 +239,7 @@ export function Horizon({
       >
         <path
           ref={backRef}
-          d={waveMode === "calm" ? CALM_BACK_PATH : REACTIVE_REST_PATH}
+          d={waveMode === "calm" ? CALM_BACK_PATH : FLAT_REST_PATH}
           fill={backFill}
           className="transition-[fill] duration-[2000ms]"
         />

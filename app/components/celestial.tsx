@@ -38,14 +38,19 @@ export function Celestial({
   // Daytime moon is subtly translucent against bright sky; night moon is crisp
   const moonOpacity = !moon.visible ? 0 : isDarkSky ? 1 : 0.35;
   const sunOpacity = !sun.visible ? 0 : sun.altitudeDeg < 2 ? 0.85 : 1;
-  const posTransition = animatePosition ? "transition-[left,top,opacity] duration-1000 ease-linear" : "transition-opacity duration-700";
+  const posTransition = animatePosition
+    ? "transition-[transform,opacity] duration-[60000ms] ease-linear"
+    : "transition-opacity duration-700";
 
   return (
     <>
       {/* Sun */}
       <div
-        className={`absolute -z-10 w-[72px] h-[72px] -translate-x-1/2 -translate-y-1/2 pointer-events-none ${posTransition}`}
-        style={{ left: `${sun.x}%`, top: `${sun.y}%`, opacity: sunOpacity }}
+        className={`absolute top-0 left-0 -z-10 w-[72px] h-[72px] pointer-events-none will-change-transform ${posTransition}`}
+        style={{
+          transform: `translate3d(calc(${sun.x}vw - 50%), calc(${sun.y}vh - 50%), 0)`,
+          opacity: sunOpacity,
+        }}
         aria-hidden="true"
       >
         <div
@@ -59,8 +64,11 @@ export function Celestial({
 
       {/* Moon */}
       <div
-        className={`absolute -z-10 w-[58px] h-[58px] -translate-x-1/2 -translate-y-1/2 pointer-events-none ${posTransition}`}
-        style={{ left: `${moon.x}%`, top: `${moon.y}%`, opacity: moonOpacity }}
+        className={`absolute top-0 left-0 -z-10 w-[58px] h-[58px] pointer-events-none will-change-transform ${posTransition}`}
+        style={{
+          transform: `translate3d(calc(${moon.x}vw - 50%), calc(${moon.y}vh - 50%), 0)`,
+          opacity: moonOpacity,
+        }}
         aria-hidden="true"
       >
         <div

@@ -12,7 +12,7 @@ import { StarField, ShootingStars } from "./components/star-field";
 import { Celestial } from "./components/celestial";
 import { Clouds } from "./components/clouds";
 import { WeatherParticles } from "./components/weather-particles";
-import { Horizon } from "./components/horizon";
+import { Horizon, type HorizonWaveMode } from "./components/horizon";
 import { TopBar } from "./components/top-bar";
 import { ClockDisplay } from "./components/clock-display";
 import { FocusTimer } from "./components/focus-timer";
@@ -58,6 +58,9 @@ export default function Home() {
   const [volume, setVolume] = useState(55);
   const [radioMeta, setRadioMeta] = useState<RadioMeta>({ title: "Lofi Radio", station: "Live Stream" });
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
   // ambient mixer
   const [rainLevel, setRainLevel] = useState(0);
@@ -70,6 +73,7 @@ export default function Home() {
   const [use12h, setUse12h] = useState(false);
   const [zenAutoHide, setZenAutoHide] = useState(false);
   const [zenDimmed, setZenDimmed] = useState(false);
+  const [waveMode, setWaveMode] = useState<HorizonWaveMode>("calm");
 
   /* ───────── effects ───────── */
 
@@ -83,6 +87,7 @@ export default function Home() {
         if (typeof p.radioUrl === "string" && p.radioUrl) setRadioUrl(p.radioUrl);
         if (typeof p.use12h === "boolean") setUse12h(p.use12h);
         if (typeof p.zenAutoHide === "boolean") setZenAutoHide(p.zenAutoHide);
+        if (p.waveMode === "calm" || p.waveMode === "reactive") setWaveMode(p.waveMode);
         if (p.skyOverride) setSkyOverride(p.skyOverride);
         if (typeof p.rainLevel === "number") setRainLevel(p.rainLevel);
         if (typeof p.windLevel === "number") setWindLevel(p.windLevel);
@@ -97,10 +102,10 @@ export default function Home() {
     try {
       localStorage.setItem(
         PREFS_KEY,
-        JSON.stringify({ volume, radioUrl, use12h, zenAutoHide, skyOverride, rainLevel, windLevel, fireLevel })
+        JSON.stringify({ volume, radioUrl, use12h, zenAutoHide, waveMode, skyOverride, rainLevel, windLevel, fireLevel })
       );
     } catch { /* ignore */ }
-  }, [mounted, volume, radioUrl, use12h, zenAutoHide, skyOverride, rainLevel, windLevel, fireLevel]);
+  }, [mounted, volume, radioUrl, use12h, zenAutoHide, waveMode, skyOverride, rainLevel, windLevel, fireLevel]);
 
   // sync ambient channels
   useEffect(() => { setAmbientLevel("rain", rainLevel); }, [rainLevel]);
@@ -270,6 +275,32 @@ export default function Home() {
   }, [zenAutoHide, drawerOpen]);
 
   /* ───────── handlers ───────── */
+  const ensureAudioAnalyser = useCallback(() => {
+    const a = audioRef.current;
+    if (!a || sourceNodeRef.current) {
+      if (audioCtxRef.current?.state === "suspended") {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+      return;
+    }
+    try {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const node = ctx.createAnalyser();
+      node.fftSize = 128;
+      node.smoothingTimeConstant = 0.62;
+      const src = ctx.createMediaElementSource(a);
+      src.connect(node);
+      node.connect(ctx.destination);
+      audioCtxRef.current = ctx;
+      sourceNodeRef.current = src;
+      setAnalyser(node);
+    } catch {
+      /* Fallback: stream still plays without visualizer */
+    }
+  }, []);
+
   const toggleRadio = useCallback(() => {
     const a = audioRef.current; if (!a) return;
     if (isPlaying || audioStatus === "loading") {
@@ -278,6 +309,7 @@ export default function Home() {
       setAudioStatus("idle");
       return;
     }
+    ensureAudioAnalyser();
     setAudioStatus("loading");
     if (audioStatus === "error") {
       a.load();
@@ -294,7 +326,7 @@ export default function Home() {
           setAudioStatus("error");
         });
     }
-  }, [isPlaying, audioStatus]);
+  }, [isPlaying, audioStatus, ensureAudioAnalyser]);
 
   const startPreset = useCallback((min: number, kind: "focus" | "break" | "longBreak" = "focus") => {
     setFocusPhase(kind);
@@ -349,6 +381,9 @@ export default function Home() {
   const moonData = getMoonPhase(now);
   const timeLabel = mounted ? formatTime(now, use12h) : "--:--";
   const dateLabel = mounted ? formatDateLabel(now) : "";
+  const proxiedStreamUrl = radioUrl
+    ? `/api/stream?url=${encodeURIComponent(radioUrl)}`
+    : "";
 
   /* ───────── render ───────── */
   return (
@@ -375,7 +410,7 @@ export default function Home() {
         <Clouds cloudCover={cloudCover} phase={phase} />
         <Celestial phase={phase} sun={celestial.sun} moon={celestial.moon} moonData={moonData} animatePosition={animateCelestial} />
         <WeatherParticles weather={weather} phase={phase} rainLevel={rainLevel} />
-        <Horizon phase={phase} />
+        <Horizon phase={phase} analyser={analyser} isPlaying={isPlaying} volume={volume} waveMode={waveMode} />
       </div>
 
       {/* UI */}
@@ -441,6 +476,7 @@ export default function Home() {
         skyOverride={skyOverride}
         use12h={use12h}
         zenAutoHide={zenAutoHide}
+        waveMode={waveMode}
         rainLevel={rainLevel}
         windLevel={windLevel}
         fireLevel={fireLevel}
@@ -451,13 +487,14 @@ export default function Home() {
         onSetSkyOverride={setSkyOverride}
         onSetUse12h={setUse12h}
         onSetZenAutoHide={setZenAutoHide}
+        onSetWaveMode={setWaveMode}
         onSetRainLevel={setRainLevel}
         onSetWindLevel={setWindLevel}
         onSetFireLevel={setFireLevel}
       />
 
-      {/* Audio element */}
-      {radioUrl ? <audio ref={audioRef} src={radioUrl} preload="none" playsInline /> : <audio ref={audioRef} preload="none" playsInline />}
+      {/* Audio element (same-origin /api/stream proxy enables FFT analysis & iPad Safari playback) */}
+      {proxiedStreamUrl ? <audio ref={audioRef} src={proxiedStreamUrl} preload="none" playsInline /> : <audio ref={audioRef} preload="none" playsInline />}
     </main>
   );
 }

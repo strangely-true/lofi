@@ -1,4 +1,5 @@
 import type { SkyPhase } from "../lib/types";
+import type { HorizonWaveMode } from "./horizon";
 import { DEFAULT_RADIO_URL } from "../lib/constants";
 import { Icon } from "./icons";
 import { LiquidGlass } from "./liquid-glass";
@@ -12,6 +13,7 @@ interface SideDrawerProps {
   skyOverride: "auto" | SkyPhase;
   use12h: boolean;
   zenAutoHide: boolean;
+  waveMode: HorizonWaveMode;
   rainLevel: number;
   windLevel: number;
   fireLevel: number;
@@ -22,6 +24,7 @@ interface SideDrawerProps {
   onSetSkyOverride: (v: "auto" | SkyPhase) => void;
   onSetUse12h: (v: boolean) => void;
   onSetZenAutoHide: (v: boolean) => void;
+  onSetWaveMode: (v: HorizonWaveMode) => void;
   onSetRainLevel: (v: number) => void;
   onSetWindLevel: (v: number) => void;
   onSetFireLevel: (v: number) => void;
@@ -48,6 +51,7 @@ export function SideDrawer({
   skyOverride,
   use12h,
   zenAutoHide,
+  waveMode,
   rainLevel,
   windLevel,
   fireLevel,
@@ -58,6 +62,7 @@ export function SideDrawer({
   onSetSkyOverride,
   onSetUse12h,
   onSetZenAutoHide,
+  onSetWaveMode,
   onSetRainLevel,
   onSetWindLevel,
   onSetFireLevel,
@@ -224,6 +229,29 @@ export function SideDrawer({
                   {zenAutoHide ? "On" : "Off"}
                 </span>
               </button>
+              <div className="flex items-center justify-between h-9 pl-3 pr-1 border border-white/12 rounded-xl bg-white/[0.06] text-xs text-white/80">
+                <span>Horizon wave</span>
+                <div className="grid grid-cols-2 h-7 p-0.5 rounded-lg bg-white/[0.06] border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => onSetWaveMode("calm")}
+                    className={`px-2 rounded-md text-[10px] font-medium transition-colors ${
+                      waveMode === "calm" ? "bg-white/22 text-white" : "text-white/55 hover:text-white"
+                    }`}
+                  >
+                    Calm
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSetWaveMode("reactive")}
+                    className={`px-2 rounded-md text-[10px] font-medium transition-colors ${
+                      waveMode === "reactive" ? "bg-white/22 text-white" : "text-white/55 hover:text-white"
+                    }`}
+                  >
+                    Spectrum
+                  </button>
+                </div>
+              </div>
             </Section>
 
             {/* Shortcuts hint */}

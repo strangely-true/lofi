@@ -38,7 +38,7 @@ export function Celestial({
   // Daytime moon is subtly translucent against bright sky; night moon is crisp
   const moonOpacity = !moon.visible ? 0 : isDarkSky ? 1 : 0.35;
   const sunOpacity = !sun.visible ? 0 : sun.altitudeDeg < 2 ? 0.85 : 1;
-  const posTransition = animatePosition ? "transition-all duration-[2000ms] ease-in-out" : "transition-opacity duration-700";
+  const posTransition = animatePosition ? "transition-[left,top,opacity] duration-1000 ease-linear" : "transition-opacity duration-700";
 
   return (
     <>

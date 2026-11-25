@@ -270,7 +270,7 @@ export default function Home() {
   }, [zenAutoHide, drawerOpen]);
 
   /* ───────── handlers ───────── */
-  const toggleRadio = useCallback(async () => {
+  const toggleRadio = useCallback(() => {
     const a = audioRef.current; if (!a) return;
     if (isPlaying || audioStatus === "loading") {
       a.pause();
@@ -279,13 +279,20 @@ export default function Home() {
       return;
     }
     setAudioStatus("loading");
-    try {
-      await a.play();
-      setIsPlaying(true);
-      setAudioStatus("playing");
-    } catch {
-      setIsPlaying(false);
-      setAudioStatus("error");
+    if (audioStatus === "error") {
+      a.load();
+    }
+    const playPromise = a.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          setIsPlaying(true);
+          setAudioStatus("playing");
+        })
+        .catch(() => {
+          setIsPlaying(false);
+          setAudioStatus("error");
+        });
     }
   }, [isPlaying, audioStatus]);
 
@@ -336,7 +343,8 @@ export default function Home() {
   }, [timerMode, toggleTimerRunning, toggleRadio, toggleFullscreen]);
 
   /* ───────── computed ───────── */
-  const celestial = getCelestialState(now, coords.lat, coords.lon);
+  const minuteNow = new Date(Math.floor(now.getTime() / 60000) * 60000);
+  const celestial = getCelestialState(minuteNow, coords.lat, coords.lon);
   const phase = skyOverride === "auto" ? celestial.phase : skyOverride;
   const moonData = getMoonPhase(now);
   const timeLabel = mounted ? formatTime(now, use12h) : "--:--";
@@ -449,7 +457,7 @@ export default function Home() {
       />
 
       {/* Audio element */}
-      {radioUrl ? <audio ref={audioRef} src={radioUrl} preload="none" crossOrigin="anonymous" /> : <audio ref={audioRef} preload="none" />}
+      {radioUrl ? <audio ref={audioRef} src={radioUrl} preload="none" playsInline /> : <audio ref={audioRef} preload="none" playsInline />}
     </main>
   );
 }

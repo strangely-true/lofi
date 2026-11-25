@@ -52,11 +52,11 @@ function mapAzAltToScreen(azimuth: number, altitude: number): CelestialBodyPos {
   const visible = altitudeDeg > -2;
   // East (azimuth = -π/2) -> sin = -1 -> x = 88% (right)
   // West (azimuth = +π/2) -> sin = +1 -> x = 12% (left)
-  const x = Math.max(6, Math.min(94, 50 - 38 * Math.sin(azimuth)));
+  const x = Number(Math.max(6, Math.min(94, 50 - 38 * Math.sin(azimuth))).toFixed(2));
   const altNorm = Math.max(0, Math.min(1, altitude / (Math.PI / 2)));
   // Up = North (-cos(π) = +1 -> higher), South (-cos(0) = -1 -> lower)
   const northBias = -Math.cos(azimuth) * 10 * (1 - altNorm * 0.5);
-  const y = Math.max(8, Math.min(92, 78 - altNorm * 56 - northBias));
+  const y = Number(Math.max(8, Math.min(92, 78 - altNorm * 56 - northBias)).toFixed(2));
   return { x, y, altitudeDeg, visible };
 }
 

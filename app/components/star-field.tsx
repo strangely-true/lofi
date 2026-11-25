@@ -2,10 +2,31 @@ import type { CSSProperties } from "react";
 import type { SkyPhase } from "../lib/types";
 import type { Star } from "../lib/utils";
 
-export function StarField({ phase, stars, dimStars }: { phase: SkyPhase; stars: Star[]; dimStars: Star[] }) {
-  const starOpacity = phase === "night" ? "opacity-100" : phase === "twilight" || phase === "dusk" ? "opacity-45" : "opacity-0";
+export function StarField({
+  phase,
+  stars,
+  dimStars,
+  cloudCover = 0,
+  aqi = null,
+}: {
+  phase: SkyPhase;
+  stars: Star[];
+  dimStars: Star[];
+  cloudCover?: number;
+  aqi?: number | null;
+}) {
+  const baseOpacity = phase === "night" ? 1 : phase === "twilight" || phase === "dusk" ? 0.45 : 0;
+  // Clouds and heavy smog obscure stars realistically
+  const cloudFactor = Math.max(0.15, 1 - (cloudCover / 100) * 0.78);
+  const aqiFactor = aqi != null && aqi > 80 ? Math.max(0.25, 1 - (aqi - 80) / 300) : 1;
+  const finalOpacity = Number((baseOpacity * cloudFactor * aqiFactor).toFixed(3));
+
   return (
-    <div className={`absolute inset-0 -z-20 pointer-events-none transition-opacity duration-[2200ms] ease-in-out ${starOpacity}`} aria-hidden="true">
+    <div
+      className="absolute inset-0 -z-20 pointer-events-none transition-opacity duration-[2200ms] ease-in-out"
+      style={{ opacity: finalOpacity }}
+      aria-hidden="true"
+    >
       {stars.map((s, i) => (
         <div key={i} className="absolute rounded-full bg-white animate-twinkle"
           style={{ left: `${s.x}%`, top: `${s.y}%`, width: `${s.size}px`, height: `${s.size}px`, opacity: s.opacity, animationDelay: `${s.delay}s` }} />
@@ -23,9 +44,10 @@ const SHOOTING_STARS = [
   { top: "18%", left: "72%", width: 72, angle: -38, dx: -210, dy: 164, duration: 52, delay: 29 },
 ];
 
-export function ShootingStars({ phase }: { phase: SkyPhase }) {
+export function ShootingStars({ phase, cloudCover = 0 }: { phase: SkyPhase; cloudCover?: number }) {
+  const visible = phase === "night" && cloudCover < 75;
   return (
-    <div className={`absolute inset-0 -z-10 pointer-events-none transition-opacity duration-[2000ms] ${phase === "night" ? "opacity-100" : "opacity-0"}`} aria-hidden="true">
+    <div className={`absolute inset-0 -z-10 pointer-events-none transition-opacity duration-[2000ms] ${visible ? "opacity-100" : "opacity-0"}`} aria-hidden="true">
       {SHOOTING_STARS.map((s, i) => (
         <div
           key={i}

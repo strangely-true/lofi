@@ -603,10 +603,10 @@ export default function Home() {
 
       {/* Background layers */}
       <div className={`contents transition-opacity duration-700 ${sceneReady ? "opacity-100" : "opacity-0"}`}>
-        <StarField phase={phase} stars={STARS} dimStars={DIM_STARS} />
-        <ShootingStars phase={phase} />
-        <Clouds cloudCover={cloudCover} phase={phase} />
-        <Celestial phase={phase} sun={celestial.sun} moon={celestial.moon} moonData={moonData} animatePosition={animateCelestial} />
+        <StarField phase={phase} stars={STARS} dimStars={DIM_STARS} cloudCover={cloudCover} aqi={weather?.aqi ?? null} />
+        <ShootingStars phase={phase} cloudCover={cloudCover} />
+        <Clouds cloudCover={cloudCover} phase={phase} aqi={weather?.aqi ?? null} />
+        <Celestial phase={phase} sun={celestial.sun} moon={celestial.moon} moonData={moonData} animatePosition={animateCelestial} cloudCover={cloudCover} aqi={weather?.aqi ?? null} />
         <WeatherParticles weather={weather} phase={phase} />
         <Horizon phase={phase} analyser={analyser} isPlaying={isPlaying} volume={volume} waveMode={waveMode} />
       </div>

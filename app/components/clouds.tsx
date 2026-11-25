@@ -1,13 +1,16 @@
 import type { SkyPhase } from "../lib/types";
 import type { CSSProperties } from "react";
 
-export function Clouds({ cloudCover, phase }: { cloudCover: number; phase: SkyPhase }) {
+export function Clouds({ cloudCover, phase, aqi = null }: { cloudCover: number; phase: SkyPhase; aqi?: number | null }) {
   const isNight = phase === "night" || phase === "twilight" || phase === "dusk";
   const clamped = Math.max(0, Math.min(100, cloudCover));
   const cloudOpacity = isNight
-    ? 0.03 + (clamped / 100) * 0.09
-    : 0.08 + (clamped / 100) * 0.58;
-  const cloudBase = isNight ? "bg-blue-200/25" : "bg-white/40";
+    ? 0.03 + (clamped / 100) * 0.1
+    : 0.06 + (clamped / 100) * 0.62;
+  const isSmoggy = aqi != null && aqi > 120;
+  const cloudBase = isNight
+    ? isSmoggy ? "bg-stone-400/20" : "bg-blue-200/25"
+    : isSmoggy ? "bg-stone-200/40" : "bg-white/40";
 
   return (
     <>

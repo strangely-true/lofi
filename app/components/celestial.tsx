@@ -23,21 +23,29 @@ export function Celestial({
   moon,
   moonData,
   animatePosition = true,
+  cloudCover = 0,
+  aqi = null,
 }: {
   phase: SkyPhase;
   sun: CelestialBodyPos;
   moon: CelestialBodyPos;
   moonData: MoonData;
   animatePosition?: boolean;
+  cloudCover?: number;
+  aqi?: number | null;
 }) {
   const litPath = moonLitPath(moonData.phase);
   const illumination = moonData.fraction ?? (1 - Math.cos(2 * Math.PI * moonData.phase)) / 2;
   const isDarkSky = phase === "night" || phase === "twilight" || phase === "dusk";
   const isGolden = phase === "dawn" || phase === "golden";
 
+  const hazeDim =
+    Math.max(0.35, 1 - (cloudCover / 100) * 0.45) *
+    (aqi != null && aqi > 100 ? Math.max(0.45, 1 - (aqi - 100) / 350) : 1);
+
   // Daytime moon is subtly translucent against bright sky; night moon is crisp
-  const moonOpacity = !moon.visible ? 0 : isDarkSky ? 1 : 0.35;
-  const sunOpacity = !sun.visible ? 0 : sun.altitudeDeg < 2 ? 0.85 : 1;
+  const moonOpacity = !moon.visible ? 0 : (isDarkSky ? 1 : 0.35) * hazeDim;
+  const sunOpacity = !sun.visible ? 0 : (sun.altitudeDeg < 2 ? 0.85 : 1) * hazeDim;
   const posTransition = animatePosition
     ? "transition-[transform,opacity] duration-[1500ms] ease-out"
     : "transition-opacity duration-700";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from "react";
 import type { SkyPhase, WeatherInfo, RadioMeta } from "./lib/types";
 import { formatTime, formatTimer, formatDateLabel, getMoonPhase, getCelestialState, generateStars } from "./lib/utils";
 import { DEFAULT_RADIO_URL } from "./lib/constants";
@@ -23,13 +23,24 @@ import { SideDrawer } from "./components/side-drawer";
 const STARS = generateStars(120);
 const DIM_STARS = generateStars(40, 99);
 const PREFS_KEY = "still-prefs-v1";
+const emptySubscribe = () => () => {};
+
+function readPrefs(): Record<string, unknown> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
 
 /* ═══════════════════════════════════════════
    HOME — single client boundary, state hub
    ═══════════════════════════════════════════ */
 export default function Home() {
   /* ── state ── */
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [sceneReady, setSceneReady] = useState(false);
   const [animateCelestial, setAnimateCelestial] = useState(false);
   const [now, setNow] = useState(() => new Date(0));
@@ -73,29 +84,28 @@ export default function Home() {
   const [use12h, setUse12h] = useState(false);
   const [zenAutoHide, setZenAutoHide] = useState(false);
   const [zenHideMusic, setZenHideMusic] = useState(true);
-  const [zenDimmed, setZenDimmed] = useState(false);
+  const [zenIdle, setZenIdle] = useState(false);
   const [waveMode, setWaveMode] = useState<HorizonWaveMode>("calm");
+  const zenDimmed = zenAutoHide && !drawerOpen && zenIdle;
 
   /* ───────── effects ───────── */
 
-  // load persisted prefs
+  // hydrate persisted prefs after mount without synchronous setState in effect body
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(PREFS_KEY);
-      if (raw) {
-        const p = JSON.parse(raw);
-        if (typeof p.volume === "number") setVolume(p.volume);
-        if (typeof p.radioUrl === "string" && p.radioUrl) setRadioUrl(p.radioUrl);
-        if (typeof p.use12h === "boolean") setUse12h(p.use12h);
-        if (typeof p.zenAutoHide === "boolean") setZenAutoHide(p.zenAutoHide);
-        if (typeof p.zenHideMusic === "boolean") setZenHideMusic(p.zenHideMusic);
-        if (p.waveMode === "calm" || p.waveMode === "smooth" || p.waveMode === "reactive") setWaveMode(p.waveMode);
-        if (p.skyOverride) setSkyOverride(p.skyOverride);
-        if (typeof p.rainLevel === "number") setRainLevel(p.rainLevel);
-        if (typeof p.windLevel === "number") setWindLevel(p.windLevel);
-        if (typeof p.fireLevel === "number") setFireLevel(p.fireLevel);
-      }
-    } catch { /* ignore */ }
+    const id = requestAnimationFrame(() => {
+      const p = readPrefs();
+      if (typeof p.volume === "number") setVolume(p.volume);
+      if (typeof p.radioUrl === "string" && p.radioUrl) setRadioUrl(p.radioUrl);
+      if (typeof p.use12h === "boolean") setUse12h(p.use12h);
+      if (typeof p.zenAutoHide === "boolean") setZenAutoHide(p.zenAutoHide);
+      if (typeof p.zenHideMusic === "boolean") setZenHideMusic(p.zenHideMusic);
+      if (p.waveMode === "calm" || p.waveMode === "smooth" || p.waveMode === "reactive") setWaveMode(p.waveMode);
+      if (typeof p.skyOverride === "string") setSkyOverride(p.skyOverride as "auto" | SkyPhase);
+      if (typeof p.rainLevel === "number") setRainLevel(p.rainLevel);
+      if (typeof p.windLevel === "number") setWindLevel(p.windLevel);
+      if (typeof p.fireLevel === "number") setFireLevel(p.fireLevel);
+    });
+    return () => cancelAnimationFrame(id);
   }, []);
 
   // save persisted prefs
@@ -116,10 +126,12 @@ export default function Home() {
 
   // clock
   useEffect(() => {
-    setMounted(true);
-    setNow(new Date());
+    const raf = requestAnimationFrame(() => setNow(new Date()));
     const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearInterval(id);
+    };
   }, []);
 
   // location → weather (IP first, browser fallback) + snappy initial loader gate
@@ -257,15 +269,12 @@ export default function Home() {
 
   // idle zen auto-hide
   useEffect(() => {
-    if (!zenAutoHide || drawerOpen) {
-      setZenDimmed(false);
-      return;
-    }
-    let timeout = setTimeout(() => setZenDimmed(true), 8000);
+    if (!zenAutoHide || drawerOpen) return;
+    let timeout = setTimeout(() => setZenIdle(true), 8000);
     const reset = () => {
-      setZenDimmed(false);
+      setZenIdle(false);
       clearTimeout(timeout);
-      timeout = setTimeout(() => setZenDimmed(true), 8000);
+      timeout = setTimeout(() => setZenIdle(true), 8000);
     };
     window.addEventListener("pointermove", reset);
     window.addEventListener("keydown", reset);
@@ -393,6 +402,7 @@ export default function Home() {
       className="relative w-screen h-dvh overflow-hidden isolate transition-[background] duration-[2000ms] ease-in-out"
       style={SKY_GRADIENTS[phase]}
     >
+      <h1 className="sr-only">Still — Lofi Focus Timer, Live Sky & Ambient Radio</h1>
       {/* Initial loader while resolving clock & sky coordinates */}
       {!sceneReady && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-[#0a0f1d] transition-opacity duration-500">
@@ -474,7 +484,6 @@ export default function Home() {
         volume={volume}
         radioUrl={radioUrl}
         isFullscreen={isFullscreen}
-        phase={phase}
         skyOverride={skyOverride}
         use12h={use12h}
         zenAutoHide={zenAutoHide}

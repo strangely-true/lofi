@@ -9,7 +9,6 @@ interface SideDrawerProps {
   volume: number;
   radioUrl: string;
   isFullscreen: boolean;
-  phase: SkyPhase;
   skyOverride: "auto" | SkyPhase;
   use12h: boolean;
   zenAutoHide: boolean;
@@ -49,7 +48,6 @@ export function SideDrawer({
   volume,
   radioUrl,
   isFullscreen,
-  phase,
   skyOverride,
   use12h,
   zenAutoHide,
@@ -71,8 +69,6 @@ export function SideDrawer({
   onSetWindLevel,
   onSetFireLevel,
 }: SideDrawerProps) {
-  const appearance = phase === "night" || phase === "twilight" || phase === "dusk" ? "dark" : "light";
-
   return (
     <>
       {/* Backdrop */}

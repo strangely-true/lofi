@@ -49,6 +49,7 @@ interface ChannelNodes {
 }
 
 const channels: Partial<Record<AmbientChannel, ChannelNodes>> = {};
+const desiredLevels: Record<AmbientChannel, number> = { rain: 0, wind: 0, fire: 0 };
 
 function ensureChannel(name: AmbientChannel): ChannelNodes {
   const existing = channels[name];
@@ -74,10 +75,20 @@ function ensureChannel(name: AmbientChannel): ChannelNodes {
 /** Update an ambient channel's volume (0..100). */
 export async function setAmbientLevel(name: AmbientChannel, level: number): Promise<void> {
   const clamped = Math.max(0, Math.min(100, level));
+  desiredLevels[name] = clamped;
   if (clamped === 0 && !channels[name]) return;
   const ok = await ensureToneStarted();
   if (!ok) return;
   const node = ensureChannel(name);
   const target = (clamped / 100) * (name === "fire" ? 0.42 : name === "wind" ? 0.32 : 0.26);
   node.gain.gain.rampTo(target, 0.2);
+}
+
+/** Re-apply any non-zero ambient levels once a user gesture unlocks Web Audio. */
+export async function resumeAmbientAudio(): Promise<void> {
+  const active = (Object.keys(desiredLevels) as AmbientChannel[]).filter((k) => desiredLevels[k] > 0);
+  if (active.length === 0) return;
+  const ok = await ensureToneStarted();
+  if (!ok) return;
+  await Promise.all(active.map((name) => setAmbientLevel(name, desiredLevels[name])));
 }

@@ -6,7 +6,7 @@ import { formatTime, formatTimer, formatDateLabel, getMoonPhase, getCelestialSta
 import { DEFAULT_RADIO_URL } from "./lib/constants";
 import { SKY_GRADIENTS } from "./lib/sky";
 import { fetchLocationByIP, browserGeolocation, reverseGeocode, fetchWeatherAndSolar } from "./lib/data";
-import { playTimerChime, setAmbientLevel } from "./lib/ambient-audio";
+import { playTimerChime, resumeAmbientAudio, setAmbientLevel } from "./lib/ambient-audio";
 
 import { StarField, ShootingStars } from "./components/star-field";
 import { Celestial } from "./components/celestial";
@@ -24,6 +24,11 @@ const STARS = generateStars(120);
 const DIM_STARS = generateStars(40, 99);
 const PREFS_KEY = "still-prefs-v1";
 const emptySubscribe = () => () => {};
+const SKY_PHASES: SkyPhase[] = ["night", "twilight", "dawn", "morning", "day", "afternoon", "golden", "dusk"];
+
+function isPercentage(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
+}
 
 function readPrefs(): Record<string, unknown> {
   if (typeof window === "undefined") return {};
@@ -41,6 +46,7 @@ function readPrefs(): Record<string, unknown> {
 export default function Home() {
   /* ── state ── */
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
   const [animateCelestial, setAnimateCelestial] = useState(false);
   const [now, setNow] = useState(() => new Date(0));
@@ -64,11 +70,22 @@ export default function Home() {
 
   // radio
   const [radioUrl, setRadioUrl] = useState(DEFAULT_RADIO_URL);
+  const [useStreamProxy, setUseStreamProxy] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioStatus, setAudioStatus] = useState<"idle" | "loading" | "playing" | "error">("idle");
   const [volume, setVolume] = useState(55);
   const [radioMeta, setRadioMeta] = useState<RadioMeta>({ title: "Lofi Radio", station: "Live Stream" });
   const audioRef = useRef<HTMLAudioElement>(null);
+  const playbackRequestedRef = useRef(false);
+  const audioStatusRef = useRef<"idle" | "loading" | "playing" | "error">("idle");
+  const useStreamProxyRef = useRef(false);
+  const radioUrlRef = useRef(DEFAULT_RADIO_URL);
+  const reconnectRef = useRef<(() => void) | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bufferingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const waitingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPlaybackTimeRef = useRef(0);
+  const reconnectAttemptsRef = useRef(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
@@ -94,35 +111,54 @@ export default function Home() {
   useEffect(() => {
     const id = requestAnimationFrame(() => {
       const p = readPrefs();
-      if (typeof p.volume === "number") setVolume(p.volume);
+      if (isPercentage(p.volume)) setVolume(p.volume);
       if (typeof p.radioUrl === "string" && p.radioUrl) setRadioUrl(p.radioUrl);
       if (typeof p.use12h === "boolean") setUse12h(p.use12h);
       if (typeof p.zenAutoHide === "boolean") setZenAutoHide(p.zenAutoHide);
       if (typeof p.zenHideMusic === "boolean") setZenHideMusic(p.zenHideMusic);
       if (p.waveMode === "calm" || p.waveMode === "smooth" || p.waveMode === "reactive") setWaveMode(p.waveMode);
-      if (typeof p.skyOverride === "string") setSkyOverride(p.skyOverride as "auto" | SkyPhase);
-      if (typeof p.rainLevel === "number") setRainLevel(p.rainLevel);
-      if (typeof p.windLevel === "number") setWindLevel(p.windLevel);
-      if (typeof p.fireLevel === "number") setFireLevel(p.fireLevel);
+      if (p.skyOverride === "auto" || SKY_PHASES.includes(p.skyOverride as SkyPhase)) {
+        setSkyOverride(p.skyOverride as "auto" | SkyPhase);
+      }
+      if (isPercentage(p.rainLevel)) setRainLevel(p.rainLevel);
+      if (isPercentage(p.windLevel)) setWindLevel(p.windLevel);
+      if (isPercentage(p.fireLevel)) setFireLevel(p.fireLevel);
+      if (typeof p.customMinutes === "string" && /^\d+$/.test(p.customMinutes)) setCustomMinutes(p.customMinutes);
+      setPrefsLoaded(true);
     });
     return () => cancelAnimationFrame(id);
   }, []);
 
   // save persisted prefs
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !prefsLoaded) return;
     try {
       localStorage.setItem(
         PREFS_KEY,
-        JSON.stringify({ volume, radioUrl, use12h, zenAutoHide, zenHideMusic, waveMode, skyOverride, rainLevel, windLevel, fireLevel })
+        JSON.stringify({ volume, radioUrl, use12h, zenAutoHide, zenHideMusic, waveMode, skyOverride, rainLevel, windLevel, fireLevel, customMinutes })
       );
     } catch { /* ignore */ }
-  }, [mounted, volume, radioUrl, use12h, zenAutoHide, zenHideMusic, waveMode, skyOverride, rainLevel, windLevel, fireLevel]);
+  }, [mounted, prefsLoaded, volume, radioUrl, use12h, zenAutoHide, zenHideMusic, waveMode, skyOverride, rainLevel, windLevel, fireLevel, customMinutes]);
 
-  // sync ambient channels
+  // sync ambient channels & resume once user interacts after reload
   useEffect(() => { setAmbientLevel("rain", rainLevel); }, [rainLevel]);
   useEffect(() => { setAmbientLevel("wind", windLevel); }, [windLevel]);
   useEffect(() => { setAmbientLevel("fire", fireLevel); }, [fireLevel]);
+  useEffect(() => {
+    const unlock = () => {
+      resumeAmbientAudio();
+    };
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
+  useEffect(() => { audioStatusRef.current = audioStatus; }, [audioStatus]);
+  useEffect(() => { useStreamProxyRef.current = useStreamProxy; }, [useStreamProxy]);
+  useEffect(() => { radioUrlRef.current = radioUrl; }, [radioUrl]);
 
   // clock
   useEffect(() => {
@@ -193,19 +229,125 @@ export default function Home() {
       }
     }
     let iv: ReturnType<typeof setInterval> | null = null;
-    const onWaiting = () => setAudioStatus("loading");
-    const onPlaying = () => { setAudioStatus("playing"); setIsPlaying(true); check(); if (!iv) iv = setInterval(check, 5000); };
-    const onPause = () => { setAudioStatus("idle"); setIsPlaying(false); if (iv) { clearInterval(iv); iv = null; } };
-    const onError = () => { setAudioStatus("error"); setIsPlaying(false); if (iv) { clearInterval(iv); iv = null; } };
+    const clearRecoveryTimers = () => {
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      if (bufferingTimerRef.current) clearTimeout(bufferingTimerRef.current);
+      if (waitingDebounceRef.current) clearTimeout(waitingDebounceRef.current);
+      reconnectTimerRef.current = null;
+      bufferingTimerRef.current = null;
+      waitingDebounceRef.current = null;
+    };
+    const markPlaying = () => {
+      clearRecoveryTimers();
+      reconnectAttemptsRef.current = 0;
+      setAudioStatus("playing");
+      setIsPlaying(true);
+      check();
+      if (!iv) iv = setInterval(check, 5000);
+    };
+    const scheduleReconnect = () => {
+      if (!playbackRequestedRef.current || reconnectTimerRef.current) return;
+      const delay = Math.min(1000 * 2 ** reconnectAttemptsRef.current, 30000);
+      reconnectAttemptsRef.current += 1;
+      setAudioStatus("loading");
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        if (!playbackRequestedRef.current) return;
+        audio.load();
+        audio.play().catch(scheduleReconnect);
+      }, delay);
+    };
+    reconnectRef.current = scheduleReconnect;
+    const onWaiting = () => {
+      if (!playbackRequestedRef.current) return;
+      if (!waitingDebounceRef.current && audioStatusRef.current !== "loading") {
+        waitingDebounceRef.current = setTimeout(() => {
+          waitingDebounceRef.current = null;
+          if (playbackRequestedRef.current && audio.readyState < 3) {
+            setAudioStatus("loading");
+          }
+        }, 650);
+      }
+      if (!bufferingTimerRef.current) {
+        const snapshotTime = audio.currentTime;
+        bufferingTimerRef.current = setTimeout(() => {
+          bufferingTimerRef.current = null;
+          if (playbackRequestedRef.current && audio.currentTime <= snapshotTime) {
+            scheduleReconnect();
+          }
+        }, 15000);
+      }
+    };
+    const onStalled = () => {
+      if (!playbackRequestedRef.current) return;
+      // Live streams emit "stalled" at chunk boundaries even while playing smoothly;
+      // only treat it as buffering when the element actually lacks future frames.
+      if (audio.readyState < 3) {
+        onWaiting();
+      }
+    };
+    const onCanPlay = () => {
+      if (playbackRequestedRef.current && !audio.paused) {
+        markPlaying();
+      }
+    };
+    const onTimeUpdate = () => {
+      if (audio.currentTime > lastPlaybackTimeRef.current) {
+        lastPlaybackTimeRef.current = audio.currentTime;
+        if (playbackRequestedRef.current && !audio.paused && (audioStatusRef.current === "loading" || bufferingTimerRef.current || waitingDebounceRef.current)) {
+          markPlaying();
+        }
+      }
+    };
+    const onPlaying = () => {
+      markPlaying();
+    };
+    const onPause = () => {
+      if (playbackRequestedRef.current) return;
+      clearRecoveryTimers();
+      setAudioStatus("idle");
+      setIsPlaying(false);
+      if (iv) { clearInterval(iv); iv = null; }
+    };
+    const onError = () => {
+      if (!useStreamProxyRef.current && radioUrlRef.current) {
+        setUseStreamProxy(true);
+        if (playbackRequestedRef.current) {
+          setTimeout(() => {
+            if (playbackRequestedRef.current) {
+              audio.load();
+              audio.play().catch(scheduleReconnect);
+            }
+          }, 50);
+        }
+        return;
+      }
+      if (playbackRequestedRef.current) {
+        scheduleReconnect();
+      } else {
+        setAudioStatus("error");
+        setIsPlaying(false);
+      }
+    };
     audio.addEventListener("waiting", onWaiting);
+    audio.addEventListener("stalled", onStalled);
+    audio.addEventListener("canplay", onCanPlay);
+    audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("playing", onPlaying);
     audio.addEventListener("pause", onPause);
+    audio.addEventListener("ended", onError);
     audio.addEventListener("error", onError);
     return () => {
       audio.removeEventListener("waiting", onWaiting);
+      audio.removeEventListener("stalled", onStalled);
+      audio.removeEventListener("canplay", onCanPlay);
+      audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("ended", onError);
       audio.removeEventListener("error", onError);
+      clearRecoveryTimers();
+      reconnectRef.current = null;
       if (iv) clearInterval(iv);
     };
   }, [mounted]);
@@ -315,11 +457,20 @@ export default function Home() {
   const toggleRadio = useCallback(() => {
     const a = audioRef.current; if (!a) return;
     if (isPlaying || audioStatus === "loading") {
+      playbackRequestedRef.current = false;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      if (bufferingTimerRef.current) clearTimeout(bufferingTimerRef.current);
+      if (waitingDebounceRef.current) clearTimeout(waitingDebounceRef.current);
+      reconnectTimerRef.current = null;
+      bufferingTimerRef.current = null;
+      waitingDebounceRef.current = null;
       a.pause();
       setIsPlaying(false);
       setAudioStatus("idle");
       return;
     }
+    playbackRequestedRef.current = true;
+    reconnectAttemptsRef.current = 0;
     ensureAudioAnalyser();
     setAudioStatus("loading");
     if (audioStatus === "error") {
@@ -333,8 +484,18 @@ export default function Home() {
           setAudioStatus("playing");
         })
         .catch(() => {
-          setIsPlaying(false);
-          setAudioStatus("error");
+          if (playbackRequestedRef.current) {
+            if (reconnectRef.current) {
+              reconnectRef.current();
+            } else {
+              playbackRequestedRef.current = false;
+              setIsPlaying(false);
+              setAudioStatus("error");
+            }
+          } else {
+            setIsPlaying(false);
+            setAudioStatus("error");
+          }
         });
     }
   }, [isPlaying, audioStatus, ensureAudioAnalyser]);
@@ -385,6 +546,11 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [timerMode, toggleTimerRunning, toggleRadio, toggleFullscreen]);
 
+  const handleSetRadioUrl = useCallback((url: string) => {
+    setUseStreamProxy(false);
+    setRadioUrl(url);
+  }, []);
+
   /* ───────── computed ───────── */
   const minuteNow = new Date(Math.floor(now.getTime() / 60000) * 60000);
   const celestial = getCelestialState(minuteNow, coords.lat, coords.lon);
@@ -392,8 +558,15 @@ export default function Home() {
   const moonData = getMoonPhase(now);
   const timeLabel = mounted ? formatTime(now, use12h) : "--:--";
   const dateLabel = mounted ? formatDateLabel(now) : "";
-  const proxiedStreamUrl = radioUrl
-    ? `/api/stream?url=${encodeURIComponent(radioUrl)}`
+  const isHttpOnHttps =
+    mounted &&
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    radioUrl.startsWith("http://");
+  const activeStreamUrl = radioUrl
+    ? useStreamProxy || isHttpOnHttps
+      ? `/api/stream?url=${encodeURIComponent(radioUrl)}`
+      : radioUrl
     : "";
 
   /* ───────── render ───────── */
@@ -494,7 +667,7 @@ export default function Home() {
         fireLevel={fireLevel}
         onClose={() => setDrawerOpen(false)}
         onSetVolume={setVolume}
-        onSetRadioUrl={setRadioUrl}
+        onSetRadioUrl={handleSetRadioUrl}
         onToggleFullscreen={toggleFullscreen}
         onSetSkyOverride={setSkyOverride}
         onSetUse12h={setUse12h}
@@ -506,8 +679,14 @@ export default function Home() {
         onSetFireLevel={setFireLevel}
       />
 
-      {/* Audio element (same-origin /api/stream proxy enables FFT analysis & iPad Safari playback) */}
-      {proxiedStreamUrl ? <audio ref={audioRef} src={proxiedStreamUrl} preload="none" playsInline /> : <audio ref={audioRef} preload="none" playsInline />}
+      {/* Audio element (direct CORS stream first, /api/stream proxy fallback for non-CORS/http streams) */}
+      <audio
+        ref={audioRef}
+        src={activeStreamUrl || undefined}
+        crossOrigin="anonymous"
+        preload="none"
+        playsInline
+      />
     </main>
   );
 }

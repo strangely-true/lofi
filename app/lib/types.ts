@@ -14,6 +14,8 @@ export interface WeatherInfo {
   weatherCode: number;
   windSpeed: number;
   humidity: number;
+  aqi: number | null;
+  pm25: number | null;
 }
 
 export interface RadioMeta {

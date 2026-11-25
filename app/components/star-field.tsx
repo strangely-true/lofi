@@ -19,11 +19,8 @@ export function StarField({ phase, stars, dimStars }: { phase: SkyPhase; stars: 
 }
 
 const SHOOTING_STARS = [
-  { top: "10%", left: "16%", width: 84, angle: 34, dx: 230, dy: 155, duration: 7, delay: 2 },
-  { top: "18%", left: "72%", width: 72, angle: -38, dx: -210, dy: 164, duration: 9, delay: 6 },
-  { top: "8%", left: "44%", width: 92, angle: 26, dx: 260, dy: 127, duration: 11, delay: 10 },
-  { top: "24%", left: "84%", width: 68, angle: -44, dx: -185, dy: 179, duration: 8.5, delay: 14 },
-  { top: "14%", left: "28%", width: 76, angle: 46, dx: 180, dy: 186, duration: 12, delay: 19 },
+  { top: "12%", left: "22%", width: 84, angle: 34, dx: 230, dy: 155, duration: 38, delay: 8 },
+  { top: "18%", left: "72%", width: 72, angle: -38, dx: -210, dy: 164, duration: 52, delay: 29 },
 ];
 
 export function ShootingStars({ phase }: { phase: SkyPhase }) {

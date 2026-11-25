@@ -1,14 +1,14 @@
-import type { SkyPhase, MoonData, WeatherInfo } from "../lib/types";
+import type { SkyPhase, MoonData } from "../lib/types";
 import { Icon } from "./icons";
 import { LiquidGlass } from "./liquid-glass";
 
 interface TopBarProps {
   locationName: string;
-  weather: WeatherInfo | null;
   phase: SkyPhase;
   moonData: MoonData;
   isFullscreen: boolean;
   zenDimmed?: boolean;
+  onRefreshLocation?: () => void;
   onToggleFullscreen: () => void;
   onToggleDrawer: () => void;
 }
@@ -24,7 +24,7 @@ const PHASE_LABEL: Record<SkyPhase, string> = {
   dusk: "Dusk",
 };
 
-export function TopBar({ locationName, weather, phase, moonData, isFullscreen, zenDimmed = false, onToggleFullscreen, onToggleDrawer }: TopBarProps) {
+export function TopBar({ locationName, phase, moonData, isFullscreen, zenDimmed = false, onRefreshLocation, onToggleFullscreen, onToggleDrawer }: TopBarProps) {
   const appearance = phase === "night" || phase === "twilight" || phase === "dusk" ? "dark" : "light";
   const statusText = phase === "night" ? `${moonData.name} ${moonData.emoji}` : PHASE_LABEL[phase];
 
@@ -32,24 +32,18 @@ export function TopBar({ locationName, weather, phase, moonData, isFullscreen, z
     <header className={`absolute z-5 top-6 left-7 right-7 flex items-center justify-between transition-opacity duration-700 max-md:top-3.5 max-md:left-3.5 max-md:right-3.5 max-md:flex-wrap max-md:gap-2 ${zenDimmed ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
       {/* Location */}
       <LiquidGlass asChild interactive material="clear" appearance={appearance} refraction={6} bezel={14} blur={2}>
-        <button className="h-10 rounded-full flex items-center gap-2 px-4 text-white/90 text-xs font-[450] tracking-wide transition" type="button">
+        <button
+          className="h-10 rounded-full flex items-center gap-2 px-4 text-white/90 text-xs font-[450] tracking-wide transition"
+          type="button"
+          onClick={onRefreshLocation}
+          title="Refresh location & weather"
+        >
           <Icon name="location" size={15} />
           <span>{locationName}</span>
         </button>
       </LiquidGlass>
 
       <div className="flex items-center gap-2.5 max-md:gap-1.5">
-        {/* Weather pill */}
-        {weather && (
-          <LiquidGlass asChild material="clear" appearance={appearance} refraction={6} bezel={14} blur={2}>
-            <div className="h-10 rounded-full flex items-center gap-1.5 px-3.5 text-xs font-[450] text-white max-md:hidden">
-              <span className="text-white/95 font-medium">{weather.temperature}°C</span>
-              <span className="text-white/35">·</span>
-              <span className="text-white/70">{weather.description}</span>
-            </div>
-          </LiquidGlass>
-        )}
-
         {/* Sky status */}
         <div className="h-10 rounded-full flex items-center gap-2 px-3.5 text-white/[0.68] text-[11px] uppercase tracking-[0.12em] max-md:hidden">
           <span className="w-[7px] h-[7px] rounded-full bg-white/85 shadow-[0_0_10px_rgba(255,255,255,0.7)] animate-pulse-dot" />

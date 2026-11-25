@@ -39,7 +39,7 @@ export function Celestial({
   const moonOpacity = !moon.visible ? 0 : isDarkSky ? 1 : 0.35;
   const sunOpacity = !sun.visible ? 0 : sun.altitudeDeg < 2 ? 0.85 : 1;
   const posTransition = animatePosition
-    ? "transition-[transform,opacity] duration-[60000ms] ease-linear"
+    ? "transition-[transform,opacity] duration-[1500ms] ease-out"
     : "transition-opacity duration-700";
 
   return (

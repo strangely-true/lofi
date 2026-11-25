@@ -1,15 +1,34 @@
 import type { WeatherInfo, SkyPhase } from "./types";
 import { WMO } from "./constants";
 
-/* ───── IP-based geolocation (no permission prompt) ───── */
+/* ───── IP-based geolocation (HTTPS, no-store so VPN changes take effect) ───── */
 export async function fetchLocationByIP(): Promise<{ lat: number; lon: number; city: string; country: string } | null> {
   try {
-    const r = await fetch("http://ip-api.com/json/?fields=status,city,country,lat,lon");
-    if (r.ok) { const d = await r.json(); if (d.status === "success") return { lat: d.lat, lon: d.lon, city: d.city, country: d.country }; }
+    const r = await fetch("https://freeipapi.com/api/json", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const d = await r.json();
+      if (typeof d.latitude === "number" && typeof d.longitude === "number") {
+        return { lat: d.latitude, lon: d.longitude, city: d.cityName || "Unknown", country: d.countryName || "" };
+      }
+    }
   } catch { /* next */ }
   try {
-    const r = await fetch("https://ipapi.co/json/");
-    if (r.ok) { const d = await r.json(); if (d.city) return { lat: d.latitude, lon: d.longitude, city: d.city, country: d.country_name }; }
+    const r = await fetch("https://ipwho.is/", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.success !== false && typeof d.latitude === "number" && typeof d.longitude === "number") {
+        return { lat: d.latitude, lon: d.longitude, city: d.city || "Unknown", country: d.country || "" };
+      }
+    }
+  } catch { /* next */ }
+  try {
+    const r = await fetch("https://ipapi.co/json/", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const d = await r.json();
+      if (typeof d.latitude === "number" && typeof d.longitude === "number" && d.city) {
+        return { lat: d.latitude, lon: d.longitude, city: d.city, country: d.country_name || "" };
+      }
+    }
   } catch { /* next */ }
   return null;
 }
@@ -39,7 +58,7 @@ export async function reverseGeocode(lat: number, lon: number): Promise<string> 
   return Intl.DateTimeFormat().resolvedOptions().timeZone.split("/").pop()?.replaceAll("_", " ") || "Local sky";
 }
 
-/* ───── Weather + solar data ───── */
+/* ───── Weather + AQI + solar data ───── */
 export async function fetchWeatherAndSolar(lat: number, lon: number): Promise<{
   weather: WeatherInfo;
   cloudCover: number;
@@ -47,11 +66,27 @@ export async function fetchWeatherAndSolar(lat: number, lon: number): Promise<{
   solarProgress: number | null;
 } | null> {
   try {
-    const r = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&current=temperature_2m,weather_code,cloud_cover,wind_speed_10m,relative_humidity_2m&timezone=auto&forecast_days=1`,
-    );
-    if (!r.ok) return null;
-    const d = await r.json();
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&current=temperature_2m,weather_code,cloud_cover,wind_speed_10m,relative_humidity_2m&timezone=auto&forecast_days=1`;
+    const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi,pm2_5`;
+
+    const [wRes, aqiRes] = await Promise.allSettled([
+      fetch(weatherUrl, { cache: "no-store", signal: AbortSignal.timeout(6000) }),
+      fetch(aqiUrl, { cache: "no-store", signal: AbortSignal.timeout(6000) }),
+    ]);
+
+    if (wRes.status !== "fulfilled" || !wRes.value.ok) return null;
+    const d = await wRes.value.json();
+
+    let aqi: number | null = null;
+    let pm25: number | null = null;
+    if (aqiRes.status === "fulfilled" && aqiRes.value.ok) {
+      try {
+        const aqiJson = await aqiRes.value.json();
+        const curAqi = aqiJson.current;
+        if (curAqi?.us_aqi != null) aqi = Math.round(curAqi.us_aqi);
+        if (curAqi?.pm2_5 != null) pm25 = Math.round(curAqi.pm2_5);
+      } catch { /* ignore AQI parse error */ }
+    }
 
     const code = d.current?.weather_code ?? 0;
     const weather: WeatherInfo = {
@@ -60,6 +95,8 @@ export async function fetchWeatherAndSolar(lat: number, lon: number): Promise<{
       weatherCode: code,
       windSpeed: Math.round(d.current?.wind_speed_10m ?? 0),
       humidity: Math.round(d.current?.relative_humidity_2m ?? 0),
+      aqi,
+      pm25,
     };
 
     let solarPhase: SkyPhase | null = null;

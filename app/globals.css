@@ -41,8 +41,8 @@
   }
   @keyframes shoot {
     0% { opacity: 0; transform: translate(0, 0) rotate(var(--shoot-angle, 32deg)); }
-    1.5% { opacity: 1; }
-    6% { opacity: 0; transform: translate(var(--shoot-dx, 240px), var(--shoot-dy, 150px)) rotate(var(--shoot-angle, 32deg)); }
+    0.6% { opacity: 0.9; }
+    2.6% { opacity: 0; transform: translate(var(--shoot-dx, 240px), var(--shoot-dy, 150px)) rotate(var(--shoot-angle, 32deg)); }
     100% { opacity: 0; }
   }
   @keyframes eq-bar {

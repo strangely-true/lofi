@@ -170,46 +170,59 @@ export default function Home() {
     };
   }, []);
 
-  // location → weather (IP first, browser fallback) + snappy initial loader gate
-  useEffect(() => {
-    let dead = false;
-    const readyTimer = setTimeout(() => {
-      if (!dead) setSceneReady(true);
-    }, 900);
+  // location → weather (IP first so VPN changes work, browser geolocation fallback only if IP fails)
+  const refreshLocationAndWeather = useCallback(async () => {
+    let lat: number | null = null;
+    let lon: number | null = null;
 
-    (async () => {
-      let lat: number | null = null, lon: number | null = null;
-
-      const ip = await fetchLocationByIP();
-      if (!dead && ip) {
-        lat = ip.lat; lon = ip.lon;
-        setCoords({ lat, lon });
-        setLocationName(ip.country ? `${ip.city}, ${ip.country}` : ip.city);
-      }
-      if (!dead) {
-        clearTimeout(readyTimer);
-        setSceneReady(true);
-      }
-
+    const ip = await fetchLocationByIP();
+    if (ip) {
+      lat = ip.lat;
+      lon = ip.lon;
+      setCoords({ lat, lon });
+      setLocationName(ip.country ? `${ip.city}, ${ip.country}` : ip.city);
+    } else {
       const geo = await browserGeolocation();
-      if (!dead && geo) {
-        lat = geo.lat; lon = geo.lon;
+      if (geo) {
+        lat = geo.lat;
+        lon = geo.lon;
         setCoords({ lat, lon });
         const name = await reverseGeocode(geo.lat, geo.lon);
-        if (!dead) setLocationName(name);
+        setLocationName(name);
       }
+    }
 
-      if (!dead && lat == null) { setLocationName("Local sky"); return; }
-      if (lat == null || lon == null) return;
+    setSceneReady(true);
 
-      const result = await fetchWeatherAndSolar(lat, lon);
-      if (!dead && result) {
-        setWeather(result.weather);
-        setCloudCover(result.cloudCover);
-      }
-    })();
-    return () => { dead = true; clearTimeout(readyTimer); };
+    if (lat == null || lon == null) {
+      setLocationName("Local sky");
+      return;
+    }
+
+    const result = await fetchWeatherAndSolar(lat, lon);
+    if (result) {
+      setWeather(result.weather);
+      setCloudCover(result.cloudCover);
+    }
   }, []);
+
+  useEffect(() => {
+    const readyTimer = setTimeout(() => setSceneReady(true), 900);
+    const raf = requestAnimationFrame(() => {
+      void refreshLocationAndWeather().finally(() => clearTimeout(readyTimer));
+    });
+
+    const onOnline = () => { void refreshLocationAndWeather(); };
+    window.addEventListener("online", onOnline);
+    const refreshIv = setInterval(() => { void refreshLocationAndWeather(); }, 10 * 60 * 1000);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(readyTimer);
+      window.removeEventListener("online", onOnline);
+      clearInterval(refreshIv);
+    };
+  }, [refreshLocationAndWeather]);
 
   // enable smooth 2s celestial transitions only after initial placement
   useEffect(() => {
@@ -594,18 +607,18 @@ export default function Home() {
         <ShootingStars phase={phase} />
         <Clouds cloudCover={cloudCover} phase={phase} />
         <Celestial phase={phase} sun={celestial.sun} moon={celestial.moon} moonData={moonData} animatePosition={animateCelestial} />
-        <WeatherParticles weather={weather} phase={phase} rainLevel={rainLevel} />
+        <WeatherParticles weather={weather} phase={phase} />
         <Horizon phase={phase} analyser={analyser} isPlaying={isPlaying} volume={volume} waveMode={waveMode} />
       </div>
 
       {/* UI */}
       <TopBar
         locationName={locationName}
-        weather={weather}
         phase={phase}
         moonData={moonData}
         isFullscreen={isFullscreen}
         zenDimmed={zenDimmed}
+        onRefreshLocation={refreshLocationAndWeather}
         onToggleFullscreen={toggleFullscreen}
         onToggleDrawer={() => setDrawerOpen((v) => !v)}
       />

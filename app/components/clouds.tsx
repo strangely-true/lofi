@@ -3,17 +3,20 @@ import type { CSSProperties } from "react";
 
 export function Clouds({ cloudCover, phase }: { cloudCover: number; phase: SkyPhase }) {
   const isNight = phase === "night" || phase === "twilight" || phase === "dusk";
-  const cloudOpacity = cloudCover > 65 ? 0.72 : 0.35;
-  const cloudBase = isNight ? "opacity-[0.06] bg-blue-300/20" : "bg-white/[0.28]";
+  const clamped = Math.max(0, Math.min(100, cloudCover));
+  const cloudOpacity = isNight
+    ? 0.03 + (clamped / 100) * 0.09
+    : 0.08 + (clamped / 100) * 0.58;
+  const cloudBase = isNight ? "bg-blue-200/25" : "bg-white/40";
 
   return (
     <>
       <div className={`absolute -z-10 left-[8%] top-[18%] w-[36vw] h-[8vw] min-h-[70px] max-h-[110px] rounded-full blur-[18px] animate-cloud-drift ${cloudBase}`}
-        style={{ opacity: isNight ? 0.06 : cloudOpacity }} aria-hidden="true" />
+        style={{ opacity: cloudOpacity }} aria-hidden="true" />
       <div className={`absolute -z-10 right-[-5%] top-[38%] w-[28vw] h-[8vw] min-h-[70px] max-h-[110px] rounded-full blur-[18px] ${cloudBase}`}
-        style={{ opacity: isNight ? 0.06 : cloudOpacity, animation: "cloud-drift 38s ease-in-out infinite alternate-reverse" }} aria-hidden="true" />
+        style={{ opacity: cloudOpacity, animation: "cloud-drift 38s ease-in-out infinite alternate-reverse" }} aria-hidden="true" />
       <div className={`absolute -z-10 left-[40%] top-[55%] w-[22vw] h-[8vw] min-h-[70px] max-h-[110px] rounded-full blur-[24px] ${cloudBase}`}
-        style={{ opacity: isNight ? 0.04 : 0.15, animation: "cloud-drift 44s ease-in-out infinite alternate" }} aria-hidden="true" />
+        style={{ opacity: cloudOpacity * 0.6, animation: "cloud-drift 44s ease-in-out infinite alternate" }} aria-hidden="true" />
 
       {/* Horizon glow */}
       <div className={`absolute -z-10 left-[8%] right-[8%] bottom-[8%] h-[28%] rounded-full blur-[36px] transition-all duration-[1800ms] ${

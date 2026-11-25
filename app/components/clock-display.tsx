@@ -70,6 +70,12 @@ export function ClockDisplay({
             <span>Humidity {weather.humidity}%</span>
             <span className="text-white/25">·</span>
             <span>Wind {weather.windSpeed} km/h</span>
+            {weather.aqi != null && (
+              <>
+                <span className="text-white/25">·</span>
+                <span>AQI {weather.aqi}</span>
+              </>
+            )}
           </div>
         )}
 

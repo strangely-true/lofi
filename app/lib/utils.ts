@@ -27,9 +27,22 @@ export function formatTimer(seconds: number) {
 }
 
 /* ── real astronomical moon phase via SunCalc ── */
-export function getMoonPhase(date: Date): MoonData {
+export function getMoonPhase(date: Date, lat: number | null = null, lon: number | null = null): MoonData {
   const illum = SunCalc.getMoonIllumination(date);
   const phase = illum.phase;
+  const parallacticAngle = lat == null || lon == null
+    ? null
+    : SunCalc.getMoonPosition(date, lat, lon).parallacticAngle;
+  const brightLimbAngleDeg = parallacticAngle == null
+    ? undefined
+    : ((illum.angle - parallacticAngle) % 360 + 360) % 360;
+  const moonData = (name: string, emoji: string): MoonData => ({
+    phase,
+    fraction: illum.fraction,
+    brightLimbAngleDeg,
+    name,
+    emoji,
+  });
 
   const TABLE: [number, string, string][] = [
     [0.02, "New Moon", "🌑"], [0.23, "Waxing Crescent", "🌒"],
@@ -38,21 +51,21 @@ export function getMoonPhase(date: Date): MoonData {
     [0.77, "Last Quarter", "🌗"], [0.98, "Waning Crescent", "🌘"],
   ];
   for (const [limit, name, emoji] of TABLE) {
-    if (phase < limit) return { phase, fraction: illum.fraction, name, emoji };
+    if (phase < limit) return moonData(name, emoji);
   }
-  return { phase, fraction: illum.fraction, name: "New Moon", emoji: "🌑" };
+  return moonData("New Moon", "🌑");
 }
 
 /**
  * Map SunCalc v2 (azimuth & altitude in degrees) to screen coordinates:
- * Azimuth: 0° = North, 90° = East (left), 180° = South (center), 270° = West (right).
+ * Azimuth: 0° = North, 90° = East (right), 180° = South (center), 270° = West (left).
  * Altitude: 0° = horizon (y = 78%), 90° = zenith (y = 14%).
  */
 function mapAzAltToScreen(azimuthDeg: number, altitudeDeg: number): CelestialBodyPos {
-  const visible = altitudeDeg > -1.5;
+  const visible = altitudeDeg > -0.3;
   const azRad = (azimuthDeg * Math.PI) / 180;
-  // East (90°) -> x = 12% (left), South (180°) -> x = 50% (center), West (270°) -> x = 88% (right)
-  const x = Number(Math.max(6, Math.min(94, 50 - 38 * Math.sin(azRad))).toFixed(2));
+  // East (90°) -> x = 88% (right), North/South (0°/180°) -> x = 50% (center), West (270°) -> x = 12% (left)
+  const x = Number(Math.max(6, Math.min(94, 50 + 38 * Math.sin(azRad))).toFixed(2));
   const altNorm = Math.max(0, Math.min(1, altitudeDeg / 90));
   const y = Number(Math.max(10, Math.min(82, 78 - altNorm * 64)).toFixed(2));
   return { x, y, altitudeDeg, visible };
@@ -75,9 +88,9 @@ export function getCelestialState(date: Date, lat: number | null, lon: number | 
     else if (h >= 19.2 && h < 20.5) phase = "dusk";
     else phase = "night";
 
-    // Fallback arc: East (12%) at 6am -> West (88%) at 6pm
+    // Fallback arc: East (88% right) at 6am -> West (12% left) at 6pm
     const dayProg = Math.max(0, Math.min(1, (h - 6) / 12));
-    const sunX = 12 + dayProg * 76;
+    const sunX = 88 - dayProg * 76;
     const sunY = 76 - Math.sin(dayProg * Math.PI) * 52;
     const sunVisible = h >= 5.5 && h <= 19;
     const moonVisible = h < 6 || h >= 19;
@@ -88,7 +101,7 @@ export function getCelestialState(date: Date, lat: number | null, lon: number | 
     };
   }
 
-  // suncalc@2.x returns azimuth and altitude in degrees
+  // SunCalc v2 returns apparent azimuth and altitude in degrees.
   const sunPos = SunCalc.getPosition(date, lat, lon);
   const nextSunPos = SunCalc.getPosition(new Date(date.getTime() + 600_000), lat, lon);
   const isRising = nextSunPos.altitude > sunPos.altitude;

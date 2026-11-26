@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { SkyPhase } from "../lib/types";
 
-export type HorizonWaveMode = "calm" | "smooth" | "reactive";
+export type HorizonWaveMode = "calm" | "smooth" | "reactive" | "off";
 
 const BASE_Y = 132;
 
@@ -90,6 +90,7 @@ export function Horizon({
   const smoothedRef = useRef<number[]>(new Array(REACTIVE_XS.length).fill(0));
 
   useEffect(() => {
+    if (waveMode === "off") return;
     let raf = 0;
 
     if (waveMode === "calm") {
@@ -211,6 +212,8 @@ export function Horizon({
 
     return () => cancelAnimationFrame(raf);
   }, [waveMode, analyser, isPlaying, volume]);
+
+  if (waveMode === "off") return null;
 
   const isDark = phase === "night" || phase === "twilight" || phase === "dusk";
   const isGolden = phase === "dawn" || phase === "golden";

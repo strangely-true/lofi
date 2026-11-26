@@ -116,7 +116,7 @@ export default function Home() {
       if (typeof p.use12h === "boolean") setUse12h(p.use12h);
       if (typeof p.zenAutoHide === "boolean") setZenAutoHide(p.zenAutoHide);
       if (typeof p.zenHideMusic === "boolean") setZenHideMusic(p.zenHideMusic);
-      if (p.waveMode === "calm" || p.waveMode === "smooth" || p.waveMode === "reactive") setWaveMode(p.waveMode);
+      if (p.waveMode === "calm" || p.waveMode === "smooth" || p.waveMode === "reactive" || p.waveMode === "off") setWaveMode(p.waveMode);
       if (p.skyOverride === "auto" || SKY_PHASES.includes(p.skyOverride as SkyPhase)) {
         setSkyOverride(p.skyOverride as "auto" | SkyPhase);
       }
@@ -568,7 +568,7 @@ export default function Home() {
   const minuteNow = new Date(Math.floor(now.getTime() / 60000) * 60000);
   const celestial = getCelestialState(minuteNow, coords.lat, coords.lon);
   const phase = skyOverride === "auto" ? celestial.phase : skyOverride;
-  const moonData = getMoonPhase(now);
+  const moonData = getMoonPhase(now, coords.lat, coords.lon);
   const timeLabel = mounted ? formatTime(now, use12h) : "--:--";
   const dateLabel = mounted ? formatDateLabel(now) : "";
   const isHttpOnHttps =
@@ -606,7 +606,7 @@ export default function Home() {
         <StarField phase={phase} stars={STARS} dimStars={DIM_STARS} cloudCover={cloudCover} aqi={weather?.aqi ?? null} />
         <ShootingStars phase={phase} cloudCover={cloudCover} />
         <Clouds cloudCover={cloudCover} phase={phase} aqi={weather?.aqi ?? null} />
-        <Celestial phase={phase} sun={celestial.sun} moon={celestial.moon} moonData={moonData} animatePosition={animateCelestial} cloudCover={cloudCover} aqi={weather?.aqi ?? null} />
+        <Celestial phase={phase} sun={celestial.sun} moon={celestial.moon} moonData={moonData} animatePosition={animateCelestial} cloudCover={cloudCover} />
         <WeatherParticles weather={weather} phase={phase} />
         <Horizon phase={phase} analyser={analyser} isPlaying={isPlaying} volume={volume} waveMode={waveMode} />
       </div>

@@ -243,12 +243,13 @@ export function SideDrawer({
               )}
               <div className="flex flex-col gap-1.5 p-2.5 border border-white/12 rounded-xl bg-white/[0.06] text-xs text-white/80">
                 <span>Horizon wave</span>
-                <div className="grid grid-cols-3 h-7 p-0.5 rounded-lg bg-white/[0.06] border border-white/10">
+                <div className="grid grid-cols-4 h-7 p-0.5 rounded-lg bg-white/[0.06] border border-white/10">
                   {(
                     [
                       { value: "calm", label: "Calm" },
                       { value: "smooth", label: "Smooth" },
                       { value: "reactive", label: "Reactive" },
+                      { value: "off", label: "Off" },
                     ] as const
                   ).map((opt) => (
                     <button

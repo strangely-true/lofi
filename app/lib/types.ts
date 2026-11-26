@@ -26,6 +26,7 @@ export interface RadioMeta {
 export interface MoonData {
   phase: number;
   fraction: number;
+  brightLimbAngleDeg?: number;
   name: string;
   emoji: string;
 }

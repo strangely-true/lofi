@@ -24,7 +24,6 @@ export function Celestial({
   moonData,
   animatePosition = true,
   cloudCover = 0,
-  aqi = null,
 }: {
   phase: SkyPhase;
   sun: CelestialBodyPos;
@@ -32,20 +31,28 @@ export function Celestial({
   moonData: MoonData;
   animatePosition?: boolean;
   cloudCover?: number;
-  aqi?: number | null;
 }) {
   const litPath = moonLitPath(moonData.phase);
   const illumination = moonData.fraction ?? (1 - Math.cos(2 * Math.PI * moonData.phase)) / 2;
+  const brightLimbBaseRotation = moonData.phase < 0.5 ? 0 : 180;
+  // SunCalc's position angle is north-through-east; SVG rotations are clockwise in a y-down viewBox.
+  const brightLimbRotation = moonData.brightLimbAngleDeg == null
+    ? 0
+    : -moonData.brightLimbAngleDeg - 90 - brightLimbBaseRotation;
   const isDarkSky = phase === "night" || phase === "twilight" || phase === "dusk";
   const isGolden = phase === "dawn" || phase === "golden";
 
-  const hazeDim =
-    Math.max(0.35, 1 - (cloudCover / 100) * 0.45) *
-    (aqi != null && aqi > 100 ? Math.max(0.45, 1 - (aqi - 100) / 350) : 1);
+  // Gentle cloud softening only (AQI/overcast layers in WeatherParticles sit in front)
+  const cloudDim = Math.max(0.75, 1 - (cloudCover / 100) * 0.22);
 
-  // Daytime moon is subtly translucent against bright sky; night moon is crisp
-  const moonOpacity = !moon.visible ? 0 : (isDarkSky ? 1 : 0.35) * hazeDim;
-  const sunOpacity = !sun.visible ? 0 : (sun.altitudeDeg < 2 ? 0.85 : 1) * hazeDim;
+  const moonAmbientOpacity = sun.altitudeDeg >= 0
+    ? 0.32
+    : sun.altitudeDeg > -6
+      ? 0.32 + (-sun.altitudeDeg / 6) * 0.68
+      : 1;
+  const moonOpacity = moon.visible ? moonAmbientOpacity * cloudDim : 0;
+  const sunAltitudeOpacity = 0.65 + 0.35 * Math.min(1, Math.max(0, sun.altitudeDeg) / 8);
+  const sunOpacity = sun.visible ? sunAltitudeOpacity * cloudDim : 0;
   const posTransition = animatePosition
     ? "transition-[transform,opacity] duration-[1500ms] ease-out"
     : "transition-opacity duration-700";
@@ -83,19 +90,23 @@ export function Celestial({
           className="relative w-full h-full rounded-full"
           style={{
             boxShadow: isDarkSky
-              ? `0 0 ${18 + illumination * 24}px ${4 + illumination * 6}px rgba(210,220,240,${(0.06 + illumination * 0.14).toFixed(3)})`
+              ? `0 0 ${22 + illumination * 28}px ${5 + illumination * 7}px rgba(225,232,250,${(0.12 + illumination * 0.22).toFixed(3)})`
               : "none",
           }}
         >
           <svg viewBox="0 0 100 100" className="w-full h-full rounded-full overflow-hidden">
             <defs>
               <radialGradient id="moon-surface" cx="42%" cy="38%" r="60%">
-                <stop offset="0%" stopColor="#f7f5e6" />
-                <stop offset="65%" stopColor="#e8e4cd" />
-                <stop offset="100%" stopColor="#d6d1b8" />
+                <stop offset="0%" stopColor="#fcfaf0" />
+                <stop offset="65%" stopColor="#f0ecd8" />
+                <stop offset="100%" stopColor="#ded9c2" />
               </radialGradient>
               <clipPath id="moon-lit-clip">
-                {litPath ? <path d={litPath} /> : <path d="M 0 0" />}
+                {litPath ? (
+                  <path d={litPath} transform={`rotate(${brightLimbRotation} 50 50)`} />
+                ) : (
+                  <path d="M 0 0" />
+                )}
               </clipPath>
             </defs>
 
